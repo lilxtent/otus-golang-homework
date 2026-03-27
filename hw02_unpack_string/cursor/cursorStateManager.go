@@ -22,7 +22,7 @@ func (cursorStateManager *CursorStateManager) Apply(runeElement rune) error {
 	} else if unicode.IsDigit(runeElement) {
 		err = applyDigitRune(cursorStateManager.cursorState, runeElement)
 	} else {
-		cursorStateManager.cursorState.SetSequence(runeElement)
+		cursorStateManager.cursorState.setSequence(runeElement)
 	}
 
 	return err
@@ -34,7 +34,7 @@ func (cursorStateManager *CursorStateManager) SetRepeatTimes(times int) {
 
 func applyEscapeRune(cursorState *CursorState) error {
 	if cursorState.Escaped() {
-		cursorState.SetSequence('\\')
+		cursorState.setSequence('\\')
 	} else {
 		cursorState.Escape()
 	}
@@ -44,7 +44,7 @@ func applyEscapeRune(cursorState *CursorState) error {
 
 func applyDigitRune(cursorState *CursorState, runeElement rune) error {
 	if cursorState.Escaped() {
-		cursorState.SetSequence(runeElement)
+		cursorState.setSequence(runeElement)
 	} else {
 		cursorState.setRepeatTimes(int(runeElement - '0'))
 	}

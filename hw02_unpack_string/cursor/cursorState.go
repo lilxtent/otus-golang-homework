@@ -14,7 +14,7 @@ func NewCursorState() *CursorState {
 	}
 }
 
-func (cursorState *CursorState) SetSequence(runes ...rune) {
+func (cursorState *CursorState) setSequence(runes ...rune) {
 	cursorState.sequence = &runes
 	cursorState.escape = nil
 }
