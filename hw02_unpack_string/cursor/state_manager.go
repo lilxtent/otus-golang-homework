@@ -18,10 +18,8 @@ func (cursorStateManager *StateManager) Apply(runeElement rune) {
 	switch {
 	case runeElement == '\\':
 		applyEscapeRune(cursorStateManager.cursorState)
-
 	case unicode.IsDigit(runeElement):
 		applyDigitRune(cursorStateManager.cursorState, runeElement)
-
 	default:
 		cursorStateManager.cursorState.setSequence(runeElement)
 	}
