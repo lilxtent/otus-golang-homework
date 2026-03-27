@@ -16,12 +16,14 @@ linters-settings:
           - "!$test"
         allow:
           - $gostd
+          - ://github.com...
       Test:
         files:
           - $test
         allow:
           - $gostd
           - github.com/stretchr/testify
+          - ://github.com...
 issues:
   exclude-rules:
     - path: _test\.go

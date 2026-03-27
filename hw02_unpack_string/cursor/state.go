@@ -14,50 +14,50 @@ func NewState() *State {
 	}
 }
 
-func (State *State) setSequence(runes ...rune) {
-	State.sequence = &runes
-	State.escape = nil
+func (state *State) setSequence(runes ...rune) {
+	state.sequence = &runes
+	state.escape = nil
 }
 
-func (State *State) GetSequence() *[]rune {
-	return State.sequence
+func (state *State) GetSequence() *[]rune {
+	return state.sequence
 }
 
-func (State *State) IsSequenceSpecified() bool {
-	return State.sequence != nil
+func (state *State) IsSequenceSpecified() bool {
+	return state.sequence != nil
 }
 
-func (State *State) Reset() {
-	State.sequence = nil
-	State.repeatTimes = nil
-	State.escape = nil
+func (state *State) Reset() {
+	state.sequence = nil
+	state.repeatTimes = nil
+	state.escape = nil
 }
 
-func (State *State) ReadyToFlush() bool {
-	return State.sequence != nil && State.repeatTimes != nil
+func (state *State) ReadyToFlush() bool {
+	return state.sequence != nil && state.repeatTimes != nil
 }
 
-func (State *State) Escaped() bool {
-	return State.escape != nil && *State.escape
+func (state *State) Escaped() bool {
+	return state.escape != nil && *state.escape
 }
 
-func (State *State) Escape() {
+func (state *State) Escape() {
 	escape := true
-	State.escape = &escape
+	state.escape = &escape
 }
 
-func (State *State) setRepeatTimes(repeatTimes int) {
-	State.repeatTimes = &repeatTimes
+func (state *State) setRepeatTimes(repeatTimes int) {
+	state.repeatTimes = &repeatTimes
 }
 
-func (State *State) IsRepeatTimesSpecified() bool {
-	return State.repeatTimes != nil
+func (state *State) IsRepeatTimesSpecified() bool {
+	return state.repeatTimes != nil
 }
 
-func (State *State) GetRepeatTimes() int {
-	if State.repeatTimes == nil {
+func (state *State) GetRepeatTimes() int {
+	if state.repeatTimes == nil {
 		return 1
 	}
 
-	return *State.repeatTimes
+	return *state.repeatTimes
 }
