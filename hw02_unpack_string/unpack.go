@@ -30,10 +30,10 @@ func Unpack(input string) (string, error) {
 
 		if runeElement == '\\' {
 			if cursor.Escaped() {
-				return "", ErrInvalidString
+				cursor.SetSequence(runeElement)
+			} else {
+				cursor.Escape()
 			}
-
-			cursor.Escape()
 		} else if unicode.IsDigit(runeElement) {
 			if cursor.IsRepeatTimesSpecified() {
 				return "", ErrInvalidString
@@ -95,5 +95,9 @@ func GetStringToWrite(cursorState *CursorState) *string {
 }
 
 func IsSequenceEnded(cursor *CursorState, runeElement rune) bool {
+	if cursor.IsSequenceSpecified() && runeElement == '\\' {
+		return true
+	}
+
 	return cursor.IsSequenceSpecified() && !cursor.IsRepeatTimesSpecified() && runeElement != '\\' && !unicode.IsDigit(runeElement)
 }
