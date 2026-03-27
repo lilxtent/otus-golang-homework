@@ -20,8 +20,8 @@ func Unpack(input string) (string, error) {
 
 func loopOverString(input string) (string, error) {
 	stringBuilder := &strings.Builder{}
-	cursorState := cursor.NewCursorState()
-	cursorStateManager := cursor.NewCursorStateManager(cursorState)
+	cursorState := cursor.NewState()
+	cursorStateManager := cursor.NewStateManager(cursorState)
 
 	for _, runeElement := range input {
 		if cursorState.IsRepeatTimesSpecified() && !cursorState.IsSequenceSpecified() {
@@ -38,19 +38,17 @@ func loopOverString(input string) (string, error) {
 			}
 		}
 
-		if err := cursorStateManager.Apply(runeElement); err != nil {
-			return "", err
-		}
+		cursorStateManager.Apply(runeElement)
 	}
 
-	if err := hadleCursorStateAfterLoop(cursorStateManager, cursorState, stringBuilder); err != nil {
+	if err := handleCursorStateAfterLoop(cursorStateManager, cursorState, stringBuilder); err != nil {
 		return "", err
 	}
 
 	return stringBuilder.String(), nil
 }
 
-func flush(stringsBuilder *strings.Builder, cursorState *cursor.CursorState) error {
+func flush(stringsBuilder *strings.Builder, cursorState *cursor.State) error {
 	if cursorState == nil {
 		return errors.New("cursorState state cannot be nil")
 	}
@@ -66,18 +64,18 @@ func flush(stringsBuilder *strings.Builder, cursorState *cursor.CursorState) err
 	return err
 }
 
-func getStringToWrite(cursorState *cursor.CursorState) *string {
+func getStringToWrite(cursorState *cursor.State) *string {
 	sequenceAsString := string(*cursorState.GetSequence())
 
 	if cursorState.IsRepeatTimesSpecified() {
 		repeatedString := strings.Repeat(sequenceAsString, cursorState.GetRepeatTimes())
 		return &repeatedString
-	} else {
-		return &sequenceAsString
 	}
+
+	return &sequenceAsString
 }
 
-func isSequenceEnded(cursor *cursor.CursorState, runeElement rune) bool {
+func isSequenceEnded(cursor *cursor.State, runeElement rune) bool {
 	if cursor.IsSequenceSpecified() && runeElement == '\\' {
 		return true
 	}
@@ -86,7 +84,9 @@ func isSequenceEnded(cursor *cursor.CursorState, runeElement rune) bool {
 		runeElement != '\\' && !unicode.IsDigit(runeElement)
 }
 
-func hadleCursorStateAfterLoop(cursorStateManager *cursor.CursorStateManager, cursorState *cursor.CursorState, stringBuilder *strings.Builder) error {
+func handleCursorStateAfterLoop(cursorStateManager *cursor.StateManager, cursorState *cursor.State,
+	stringBuilder *strings.Builder,
+) error {
 	if cursorState.IsSequenceSpecified() && !cursorState.IsRepeatTimesSpecified() {
 		cursorStateManager.SetRepeatTimes(1)
 	}
