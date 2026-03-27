@@ -17,6 +17,10 @@ func Unpack(input string) (string, error) {
 	stringBuilder := strings.Builder{}
 
 	for _, runeElement := range input {
+		if cursor.IsRepeatTimesSpecified() && !cursor.IsSequenceSpecified() {
+			return "", ErrInvalidString
+		}
+
 		if IsSequenceEnded(&cursor, runeElement) {
 			cursor.SetRepeatTimes(1)
 		}
