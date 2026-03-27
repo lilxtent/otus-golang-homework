@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strings"
 	"unicode"
+
+	"github.com/lilxtent/otus-golang-homework/hw02_unpack_string/cursor"
 )
 
 var ErrInvalidString = errors.New("invalid string")
@@ -13,65 +15,42 @@ func Unpack(input string) (string, error) {
 		return "", nil
 	}
 
-	cursor := CursorState{}
-	stringBuilder := strings.Builder{}
+	return loopOverString(input)
+}
+
+func loopOverString(input string) (string, error) {
+	stringBuilder := &strings.Builder{}
+	cursorState := cursor.NewCursorState()
+	cursorStateManager := cursor.NewCursorStateManager(cursorState)
 
 	for _, runeElement := range input {
-		if cursor.IsRepeatTimesSpecified() && !cursor.IsSequenceSpecified() {
+		if cursorState.IsRepeatTimesSpecified() && !cursorState.IsSequenceSpecified() {
 			return "", ErrInvalidString
 		}
 
-		if IsSequenceEnded(&cursor, runeElement) {
-			cursor.SetRepeatTimes(1)
+		if isSequenceEnded(cursorState, runeElement) {
+			cursorStateManager.SetRepeatTimes(1)
 		}
 
-		if cursor.ReadyToFlush() {
-			err := Flush(&stringBuilder, &cursor)
-			if err != nil {
+		if cursorState.ReadyToFlush() {
+			if err := flush(stringBuilder, cursorState); err != nil {
 				return "", err
 			}
 		}
 
-		if runeElement == '\\' {
-			if cursor.Escaped() {
-				cursor.SetSequence(runeElement)
-			} else {
-				cursor.Escape()
-			}
-		} else if unicode.IsDigit(runeElement) {
-			if cursor.IsRepeatTimesSpecified() {
-				return "", ErrInvalidString
-			}
-
-			if cursor.Escaped() {
-				cursor.SetSequence(runeElement)
-			} else {
-				cursor.SetRepeatTimes(int(runeElement - '0'))
-			}
-		} else {
-			cursor.SetSequence(runeElement)
-		}
-	}
-
-	if cursor.IsSequenceSpecified() && !cursor.IsRepeatTimesSpecified() {
-		cursor.SetRepeatTimes(1)
-	}
-
-	if cursor.ReadyToFlush() {
-		err := Flush(&stringBuilder, &cursor)
-		if err != nil {
+		if err := cursorStateManager.Apply(runeElement); err != nil {
 			return "", err
 		}
 	}
 
-	if cursor.IsSequenceSpecified() || cursor.IsRepeatTimesSpecified() || cursor.Escaped() {
-		return "", ErrInvalidString
+	if err := hadleCursorStateAfterLoop(cursorStateManager, cursorState, stringBuilder); err != nil {
+		return "", err
 	}
 
 	return stringBuilder.String(), nil
 }
 
-func Flush(stringsBuilder *strings.Builder, cursorState *CursorState) error {
+func flush(stringsBuilder *strings.Builder, cursorState *cursor.CursorState) error {
 	if cursorState == nil {
 		return errors.New("cursorState state cannot be nil")
 	}
@@ -80,14 +59,14 @@ func Flush(stringsBuilder *strings.Builder, cursorState *CursorState) error {
 		return errors.New("cursorState.Sequence must be specified")
 	}
 
-	stringToWrite := GetStringToWrite(cursorState)
+	stringToWrite := getStringToWrite(cursorState)
 	_, err := stringsBuilder.WriteString(*stringToWrite)
 	cursorState.Reset()
 
 	return err
 }
 
-func GetStringToWrite(cursorState *CursorState) *string {
+func getStringToWrite(cursorState *cursor.CursorState) *string {
 	sequenceAsString := string(*cursorState.GetSequence())
 
 	if cursorState.IsRepeatTimesSpecified() {
@@ -98,10 +77,29 @@ func GetStringToWrite(cursorState *CursorState) *string {
 	}
 }
 
-func IsSequenceEnded(cursor *CursorState, runeElement rune) bool {
+func isSequenceEnded(cursor *cursor.CursorState, runeElement rune) bool {
 	if cursor.IsSequenceSpecified() && runeElement == '\\' {
 		return true
 	}
 
-	return cursor.IsSequenceSpecified() && !cursor.IsRepeatTimesSpecified() && runeElement != '\\' && !unicode.IsDigit(runeElement)
+	return cursor.IsSequenceSpecified() && !cursor.IsRepeatTimesSpecified() &&
+		runeElement != '\\' && !unicode.IsDigit(runeElement)
+}
+
+func hadleCursorStateAfterLoop(cursorStateManager *cursor.CursorStateManager, cursorState *cursor.CursorState, stringBuilder *strings.Builder) error {
+	if cursorState.IsSequenceSpecified() && !cursorState.IsRepeatTimesSpecified() {
+		cursorStateManager.SetRepeatTimes(1)
+	}
+
+	if cursorState.ReadyToFlush() {
+		if err := flush(stringBuilder, cursorState); err != nil {
+			return err
+		}
+	}
+
+	if cursorState.IsSequenceSpecified() || cursorState.IsRepeatTimesSpecified() || cursorState.Escaped() {
+		return ErrInvalidString
+	}
+
+	return nil
 }

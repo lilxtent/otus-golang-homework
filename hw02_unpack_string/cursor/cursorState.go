@@ -1,4 +1,4 @@
-package hw02unpackstring
+package cursor
 
 type CursorState struct {
 	sequence    *[]rune
@@ -46,7 +46,7 @@ func (cursorState *CursorState) Escape() {
 	cursorState.escape = &escape
 }
 
-func (cursorState *CursorState) SetRepeatTimes(repeatTimes int) {
+func (cursorState *CursorState) setRepeatTimes(repeatTimes int) {
 	cursorState.repeatTimes = &repeatTimes
 }
 
