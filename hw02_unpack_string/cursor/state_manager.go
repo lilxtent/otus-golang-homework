@@ -15,11 +15,14 @@ func NewStateManager(cursorState *State) *StateManager {
 }
 
 func (cursorStateManager *StateManager) Apply(runeElement rune) {
-	if runeElement == '\\' {
+	switch {
+	case runeElement == '\\':
 		applyEscapeRune(cursorStateManager.cursorState)
-	} else if unicode.IsDigit(runeElement) {
+
+	case unicode.IsDigit(runeElement):
 		applyDigitRune(cursorStateManager.cursorState, runeElement)
-	} else {
+
+	default:
 		cursorStateManager.cursorState.setSequence(runeElement)
 	}
 }
