@@ -1,15 +1,12 @@
 package hw03frequencyanalysis
 
 import (
-	"maps"
 	"regexp"
-	"slices"
 	"sort"
 	"strings"
 )
 
 const (
-	Delimeter   = " "
 	SelectCount = 10
 )
 
@@ -41,6 +38,11 @@ func countWords(words []string, skip map[string]struct{}) []*WordStatistic {
 
 	for _, word := range words {
 		wordWithoutPunctuation := regexFilter.ReplaceAllString(word, "")
+
+		if wordWithoutPunctuation == "" {
+			continue
+		}
+
 		lowerCaseWord := strings.ToLower(wordWithoutPunctuation)
 
 		if _, ok := skip[lowerCaseWord]; ok {
@@ -56,9 +58,7 @@ func countWords(words []string, skip map[string]struct{}) []*WordStatistic {
 		}
 	}
 
-	mapsValuesIterator := maps.Values(counter)
-
-	return slices.Collect(mapsValuesIterator)
+	return extractValues(counter)
 }
 
 func firstWords(wordsStatistic []*WordStatistic, amount int) []string {
@@ -78,4 +78,13 @@ func wordsStatisticComparer(a, b *WordStatistic) bool {
 	}
 
 	return a.Count > b.Count
+}
+
+func extractValues(counter map[string]*WordStatistic) []*WordStatistic {
+	stats := make([]*WordStatistic, 0, len(counter))
+	for _, stat := range counter {
+		stats = append(stats, stat)
+	}
+
+	return stats
 }
