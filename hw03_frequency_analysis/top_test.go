@@ -6,13 +6,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTop10(t *testing.T) {
-	tests := []struct {
-		expected []string
-		input    string
-	}{
-		{
-			input: `Как видите, он  спускается  по  лестнице  вслед  за  своим
+var TestTop10TestCases = []struct {
+	expected []string
+	input    string
+}{
+	{
+		input: `Как видите, он  спускается  по  лестнице  вслед  за  своим
 			другом   Кристофером   Робином,   головой   вниз,  пересчитывая
 			ступеньки собственным затылком:  бум-бум-бум.  Другого  способа
 			сходить  с  лестницы  он  пока  не  знает.  Иногда ему, правда,
@@ -45,64 +44,65 @@ func TestTop10(t *testing.T) {
 			иногда,  особенно  когда  папа  дома,  он больше любит тихонько
 			посидеть у огня и послушать какую-нибудь интересную сказку.
 				В этот вечер...`,
-			expected: []string{
-				"а",         // 8
-				"он",        // 8
-				"и",         // 6
-				"ты",        // 5
-				"что",       // 5
-				"в",         // 4
-				"его",       // 4
-				"если",      // 4
-				"кристофер", // 4
-				"не",        // 4
-			},
+		expected: []string{
+			"а",         // 8
+			"он",        // 8
+			"и",         // 6
+			"ты",        // 5
+			"что",       // 5
+			"в",         // 4
+			"его",       // 4
+			"если",      // 4
+			"кристофер", // 4
+			"не",        // 4
 		},
-		{
-			input: `a a a bb c dc a-a`,
-			expected: []string{
-				"a",
-				"a-a",
-				"bb",
-				"c",
-				"dc",
-			},
+	},
+	{
+		input: `a a a bb c dc a-a`,
+		expected: []string{
+			"a",
+			"a-a",
+			"bb",
+			"c",
+			"dc",
 		},
-		{
-			input: `ロ ラ ラ ば を は は は は ば`,
-			expected: []string{
-				"は",
-				"ば",
-				"ラ",
-				"を",
-				"ロ",
-			},
+	},
+	{
+		input: `ロ ラ ラ ば を は は は は ば`,
+		expected: []string{
+			"は",
+			"ば",
+			"ラ",
+			"を",
+			"ロ",
 		},
-		{
-			input: `top top top ----- op ----- ----- top`,
-			expected: []string{
-				"top",
-				"-----",
-				"op",
-			},
+	},
+	{
+		input: `top top top ----- op ----- ----- top`,
+		expected: []string{
+			"top",
+			"-----",
+			"op",
 		},
-		{
-			input: `abc - -.`,
-			expected: []string{
-				"abc",
-			},
+	},
+	{
+		input: `abc - -.`,
+		expected: []string{
+			"abc",
 		},
-		{
-			input: `dog,cat dog...cat, dog...cat!! !!dog...cat!! dogcat`,
-			expected: []string{
-				"dog...cat",
-				"dog,cat",
-				"dogcat",
-			},
+	},
+	{
+		input: `dog,cat dog...cat, dog...cat!! !!dog...cat!! dogcat`,
+		expected: []string{
+			"dog...cat",
+			"dog,cat",
+			"dogcat",
 		},
-	}
+	},
+}
 
-	for _, tc := range tests {
+func TestTop10(t *testing.T) {
+	for _, tc := range TestTop10TestCases {
 		t.Run(tc.input, func(t *testing.T) {
 			require.Equal(t, tc.expected, Top10(tc.input))
 		})
