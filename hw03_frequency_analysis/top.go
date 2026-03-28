@@ -19,8 +19,8 @@ type WordStatistic struct {
 }
 
 var (
-	regexFilter *regexp.Regexp      = regexp.MustCompile(`[^\p{Cyrillic}-]`)
-	skipWords   map[string]struct{} = map[string]struct{}{"-": {}}
+	regexFilter = regexp.MustCompile(`[^\p{Cyrillic}-]`)
+	skipWords   = map[string]struct{}{"-": {}}
 )
 
 func Top10(input string) []string {
@@ -33,9 +33,7 @@ func Top10(input string) []string {
 
 	sort.Slice(wordsStatistic, func(i, j int) bool { return wordsStatisticComparer(wordsStatistic[i], wordsStatistic[j]) })
 
-	top10Words, _ := firstWords(wordsStatistic, SelectCount)
-
-	return top10Words
+	return firstWords(wordsStatistic, SelectCount)
 }
 
 func countWords(words []string, skip map[string]struct{}) []*WordStatistic {
@@ -52,7 +50,7 @@ func countWords(words []string, skip map[string]struct{}) []*WordStatistic {
 		wordStatistic, ok := counter[lowerCaseWord]
 
 		if ok {
-			wordStatistic.Count = wordStatistic.Count + 1
+			wordStatistic.Count++
 		} else {
 			counter[lowerCaseWord] = &WordStatistic{Word: lowerCaseWord, Count: 1}
 		}
@@ -63,7 +61,7 @@ func countWords(words []string, skip map[string]struct{}) []*WordStatistic {
 	return slices.Collect(mapsValuesIterator)
 }
 
-func firstWords(wordsStatistic []*WordStatistic, amount int) ([]string, error) {
+func firstWords(wordsStatistic []*WordStatistic, amount int) []string {
 	topWords := make([]string, 0, amount)
 
 	for count := 0; count < amount && count < len(wordsStatistic); count++ {
@@ -71,7 +69,7 @@ func firstWords(wordsStatistic []*WordStatistic, amount int) ([]string, error) {
 		topWords = append(topWords, word)
 	}
 
-	return topWords, nil
+	return topWords
 }
 
 func wordsStatisticComparer(a, b *WordStatistic) bool {
