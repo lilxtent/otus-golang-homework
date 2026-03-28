@@ -92,6 +92,14 @@ func TestTop10(t *testing.T) {
 				"abc",
 			},
 		},
+		{
+			input: `dog,cat dog...cat, dog...cat!! !!dog...cat!! dogcat`,
+			expected: []string{
+				"dog...cat",
+				"dog,cat",
+				"dogcat",
+			},
+		},
 	}
 
 	for _, tc := range tests {

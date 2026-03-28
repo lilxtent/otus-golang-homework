@@ -19,7 +19,7 @@ type WordStatistic struct {
 }
 
 var (
-	regexFilter = regexp.MustCompile(`[^\p{L}-]`)
+	regexFilter = regexp.MustCompile(`^[^\p{L}-]+|[^\p{L}-]+$`)
 	skipWords   = map[string]struct{}{"-": {}}
 )
 
