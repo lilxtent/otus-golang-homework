@@ -50,11 +50,63 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("purge logic", func(t *testing.T) {
-		// Write me
+		cache := NewCache(2)
+
+		cache.Set("a", 1)
+		cache.Set("b", 2)
+
+		cache.Clear()
+
+		val, ok := cache.Get("a")
+		require.False(t, ok)
+		require.Nil(t, val)
+
+		val, ok = cache.Get("b")
+		require.False(t, ok)
+		require.Nil(t, val)
+
+		cache.Set("c", 3)
+
+		val, ok = cache.Get("c")
+		require.True(t, ok)
+		require.Equal(t, 3, val)
+	})
+
+	t.Run("zero capacity", func(t *testing.T) {
+		cache := NewCache(0)
+
+		cache.Set("a", 1)
+
+		val, ok := cache.Get("a")
+
+		require.False(t, ok)
+		require.Nil(t, val)
+	})
+
+	t.Run("existed value", func(t *testing.T) {
+		cache := NewCache(3)
+
+		alreadyExisted := cache.Set("a", 1)
+		require.False(t, alreadyExisted)
+
+		alreadyExisted = cache.Set("a", 2)
+		require.True(t, alreadyExisted)
+	})
+
+	t.Run("set same value", func(t *testing.T) {
+		cache := NewCache(3)
+
+		cache.Set("a", 1)
+		cache.Set("a", 2)
+
+		value, ok := cache.Get("a")
+
+		require.True(t, ok)
+		require.Equal(t, 2, value)
 	})
 }
 
-func TestCacheMultithreading(t *testing.T) {
+func TestCacheMultithreading(_ *testing.T) {
 	c := NewCache(10)
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
