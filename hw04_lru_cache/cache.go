@@ -58,9 +58,10 @@ func (cache *lruCache) Set(key Key, value any) bool {
 }
 
 func (cache *lruCache) Get(key Key) (any, bool) {
+	cache.mutex.Lock()
+	defer cache.mutex.Unlock()
+
 	if item, ok := cache.items[key]; ok {
-		cache.mutex.Lock()
-		defer cache.mutex.Unlock()
 		cache.queue.MoveToFront(item)
 
 		return item.Value, true
