@@ -106,6 +106,7 @@ func (list *list) MoveToFront(i *ListItem) {
 		return
 	case i == list.back:
 		i.Prev.Next = nil
+		list.back = i.Prev
 		i.Next = list.front
 		list.front.Prev = i
 		list.front = i
