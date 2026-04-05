@@ -104,6 +104,25 @@ func TestCache(t *testing.T) {
 		require.True(t, ok)
 		require.Equal(t, 2, value)
 	})
+
+	t.Run("capacity overflow", func(t *testing.T) {
+		cache := NewCache(2)
+
+		cache.Set("a", 1)
+		cache.Set("b", 2)
+		cache.Set("c", 3)
+
+		_, ok := cache.Get("a")
+		require.False(t, ok)
+
+		value, ok := cache.Get("b")
+		require.True(t, ok)
+		require.Equal(t, 2, value)
+
+		value, ok = cache.Get("c")
+		require.True(t, ok)
+		require.Equal(t, 3, value)
+	})
 }
 
 func TestCacheMultithreading(_ *testing.T) {
