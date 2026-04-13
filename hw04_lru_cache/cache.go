@@ -4,6 +4,11 @@ import "sync"
 
 type Key string
 
+type cacheEntry struct {
+	key   Key
+	value any
+}
+
 type Cache interface {
 	Set(key Key, value any) bool
 	Get(key Key) (any, bool)
@@ -11,20 +16,18 @@ type Cache interface {
 }
 
 type lruCache struct {
-	capacity  int
-	queue     List
-	items     map[Key]*ListItem
-	itemToKey map[*ListItem]Key
-	mutex     sync.Mutex
+	capacity int
+	queue    List
+	items    map[Key]*ListItem
+	mutex    sync.Mutex
 }
 
 func NewCache(capacity int) Cache {
 	return &lruCache{
-		capacity:  capacity,
-		queue:     NewList(),
-		items:     make(map[Key]*ListItem, capacity),
-		itemToKey: make(map[*ListItem]Key, capacity),
-		mutex:     sync.Mutex{},
+		capacity: capacity,
+		queue:    NewList(),
+		items:    make(map[Key]*ListItem, capacity),
+		mutex:    sync.Mutex{},
 	}
 }
 
@@ -32,27 +35,29 @@ func (cache *lruCache) Set(key Key, value any) bool {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
-	existedValue, keyAlreadyExisted := cache.items[key]
-
-	if keyAlreadyExisted {
-		existedValue.Value = value
-		cache.queue.MoveToFront(existedValue)
+	if item, ok := cache.items[key]; ok {
+		entry := item.Value.(cacheEntry)
+		entry.value = value
+		item.Value = entry
+		cache.queue.MoveToFront(item)
 
 		return true
 	}
 
-	newItem := cache.queue.PushFront(value)
-	cache.items[key] = newItem
-	cache.itemToKey[newItem] = key
+	if cache.capacity == 0 {
+		return false
+	}
 
-	if cache.queue.Len() > cache.capacity {
+	if cache.queue.Len() == cache.capacity {
 		lastItem := cache.queue.Back()
-		lastItemKey := cache.itemToKey[lastItem]
+		lastKey := lastItem.Value.(cacheEntry).key
 
 		cache.queue.Remove(lastItem)
-		delete(cache.itemToKey, lastItem)
-		delete(cache.items, lastItemKey)
+		delete(cache.items, lastKey)
 	}
+
+	newItem := cache.queue.PushFront(cacheEntry{key: key, value: value})
+	cache.items[key] = newItem
 
 	return false
 }
@@ -63,8 +68,9 @@ func (cache *lruCache) Get(key Key) (any, bool) {
 
 	if item, ok := cache.items[key]; ok {
 		cache.queue.MoveToFront(item)
+		entry := item.Value.(cacheEntry)
 
-		return item.Value, true
+		return entry.value, true
 	}
 
 	return nil, false
@@ -74,6 +80,5 @@ func (cache *lruCache) Clear() {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 	cache.items = make(map[Key]*ListItem, cache.capacity)
-	cache.itemToKey = make(map[*ListItem]Key, cache.capacity)
 	cache.queue = NewList()
 }

@@ -1,9 +1,8 @@
-go 1.25.6
+go 1.26.1
 
-use ./hw01_hello_otus
-
-use ./hw02_unpack_string
-
-use ./hw03_frequency_analysis
-
-use ./hw04_lru_cache
+use (
+	./hw01_hello_otus
+	./hw02_unpack_string
+	./hw03_frequency_analysis
+	./hw04_lru_cache
+)
