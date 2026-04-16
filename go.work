@@ -1,0 +1,8 @@
+go 1.26.1
+
+use (
+	./hw01_hello_otus
+	./hw02_unpack_string
+	./hw03_frequency_analysis
+	./hw04_lru_cache
+)
