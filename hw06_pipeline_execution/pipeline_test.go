@@ -147,3 +147,91 @@ func TestAllStageStop(t *testing.T) {
 		require.Len(t, result, 0)
 	})
 }
+
+func TestExecutePipelineDoneAlreadyClosed(t *testing.T) {
+	in := make(Bi)
+	done := make(Bi)
+	close(done)
+
+	stages := []Stage{
+		func(in In) Out {
+			out := make(Bi)
+			go func() {
+				defer close(out)
+				for v := range in {
+					time.Sleep(sleepPerStage)
+					out <- v.(int) + 1
+				}
+			}()
+			return out
+		},
+	}
+
+	go func() {
+		for _, v := range []int{1, 2, 3} {
+			in <- v
+		}
+		close(in)
+	}()
+
+	start := time.Now()
+	result := make([]int, 0, 3)
+
+	for v := range ExecutePipeline(in, done, stages...) {
+		result = append(result, v.(int))
+	}
+
+	elapsed := time.Since(start)
+
+	require.Len(t, result, 0)
+	require.Less(t, int32(elapsed), int32(sleepPerStage)+int32(fault))
+}
+
+func TestExecutePipelineDoneAffectEvenOnLockedStages(t *testing.T) {
+	in := make(Bi)
+	done := make(Bi)
+
+	var wg sync.WaitGroup
+
+	stage := func(in In) Out {
+		out := make(Bi)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer close(out)
+			for v := range in {
+				out <- v
+			}
+		}()
+		return out
+	}
+
+	close(done)
+
+	outputDone := make(chan struct{})
+
+	go func() {
+		//nolint: revive
+		for range ExecutePipeline(in, done, stage) {
+		}
+		close(outputDone)
+	}()
+
+	select {
+	case <-outputDone:
+	case <-time.After(sleepPerStage):
+		t.Fatal("pipeline did not stop after done closed")
+	}
+
+	waitDone := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(waitDone)
+	}()
+
+	select {
+	case <-waitDone:
+	case <-time.After(sleepPerStage):
+		t.Fatal("stage goroutine did not exit after done closed")
+	}
+}
