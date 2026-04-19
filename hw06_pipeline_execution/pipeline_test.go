@@ -16,7 +16,7 @@ const (
 
 func TestPipeline(t *testing.T) {
 	// Stage generator
-	g := func(_ string, f func(v interface{}) interface{}) Stage {
+	g := func(_ string, f func(v any) any) Stage {
 		return func(in In) Out {
 			out := make(Bi)
 			go func() {
@@ -31,10 +31,10 @@ func TestPipeline(t *testing.T) {
 	}
 
 	stages := []Stage{
-		g("Dummy", func(v interface{}) interface{} { return v }),
-		g("Multiplier (* 2)", func(v interface{}) interface{} { return v.(int) * 2 }),
-		g("Adder (+ 100)", func(v interface{}) interface{} { return v.(int) + 100 }),
-		g("Stringifier", func(v interface{}) interface{} { return strconv.Itoa(v.(int)) }),
+		g("Dummy", func(v any) any { return v }),
+		g("Multiplier (* 2)", func(v any) any { return v.(int) * 2 }),
+		g("Adder (+ 100)", func(v any) any { return v.(int) + 100 }),
+		g("Stringifier", func(v any) any { return strconv.Itoa(v.(int)) }),
 	}
 
 	t.Run("simple case", func(t *testing.T) {
@@ -96,7 +96,7 @@ func TestPipeline(t *testing.T) {
 func TestAllStageStop(t *testing.T) {
 	wg := sync.WaitGroup{}
 	// Stage generator
-	g := func(_ string, f func(v interface{}) interface{}) Stage {
+	g := func(_ string, f func(v any) any) Stage {
 		return func(in In) Out {
 			out := make(Bi)
 			wg.Add(1)
@@ -113,10 +113,10 @@ func TestAllStageStop(t *testing.T) {
 	}
 
 	stages := []Stage{
-		g("Dummy", func(v interface{}) interface{} { return v }),
-		g("Multiplier (* 2)", func(v interface{}) interface{} { return v.(int) * 2 }),
-		g("Adder (+ 100)", func(v interface{}) interface{} { return v.(int) + 100 }),
-		g("Stringifier", func(v interface{}) interface{} { return strconv.Itoa(v.(int)) }),
+		g("Dummy", func(v any) any { return v }),
+		g("Multiplier (* 2)", func(v any) any { return v.(int) * 2 }),
+		g("Adder (+ 100)", func(v any) any { return v.(int) + 100 }),
+		g("Stringifier", func(v any) any { return strconv.Itoa(v.(int)) }),
 	}
 
 	t.Run("done case", func(t *testing.T) {
@@ -145,6 +145,5 @@ func TestAllStageStop(t *testing.T) {
 		wg.Wait()
 
 		require.Len(t, result, 0)
-
 	})
 }
