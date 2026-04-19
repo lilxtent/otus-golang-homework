@@ -67,25 +67,29 @@ func TestRun(t *testing.T) {
 		require.Equal(t, int32(tasksCount), runTasksCount, "not all tasks were completed")
 		require.LessOrEqual(t, int64(elapsedTime), int64(sumTime/2), "tasks were run sequentially?")
 	})
+}
 
-	t.Run("if m <= 0 then ignore errors", func(t *testing.T) {
-		tasksCount := 50
-		tasks := make([]Task, 0, tasksCount)
+func MIsLessOrEquealZero(t *testing.T) {
+	for _, m := range []int{-1, 0} {
+		t.Run("if m <= 0 then ignore errors", func(t *testing.T) {
+			tasksCount := 50
+			tasks := make([]Task, 0, tasksCount)
 
-		var runTasksCount int32
+			var runTasksCount int32
 
-		for i := range tasksCount {
-			tasks = append(tasks, func() error {
-				atomic.AddInt32(&runTasksCount, 1)
-				return fmt.Errorf("error from task %d", i)
-			})
-		}
+			for i := range tasksCount {
+				tasks = append(tasks, func() error {
+					atomic.AddInt32(&runTasksCount, 1)
+					return fmt.Errorf("error from task %d", i)
+				})
+			}
 
-		workersCount := 2
-		maxErrorsCount := 0
-		err := Run(tasks, workersCount, maxErrorsCount)
+			workersCount := 2
+			maxErrorsCount := m
+			err := Run(tasks, workersCount, maxErrorsCount)
 
-		require.Truef(t, errors.Is(err, ErrErrorsLimitExceeded), "actual err - %v", err)
-		require.Equal(t, tasksCount, runTasksCount, "all tasks run")
-	})
+			require.Truef(t, errors.Is(err, ErrErrorsLimitExceeded), "actual err - %v", err)
+			require.Equal(t, tasksCount, runTasksCount, "all tasks run")
+		})
+	}
 }
