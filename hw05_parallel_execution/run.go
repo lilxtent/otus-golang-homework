@@ -49,7 +49,9 @@ func initErrorsWatcher(cancelJobs context.CancelFunc, maxErrors int, errorsChann
 	}
 }
 
-func initWorkers(ctx context.Context, workersCount int, jobs <-chan Task, errorsChan chan<- error, waitGroup *sync.WaitGroup) {
+func initWorkers(ctx context.Context, workersCount int, jobs <-chan Task,
+	errorsChan chan<- error, waitGroup *sync.WaitGroup,
+) {
 	for range workersCount {
 		waitGroup.Add(1)
 
@@ -69,8 +71,8 @@ func initWorker(ctx context.Context, jobs <-chan Task, errorsChan chan<- error, 
 				return
 			}
 
-			if error := job(); error != nil {
-				errorsChan <- error
+			if err := job(); err != nil {
+				errorsChan <- err
 			}
 		}
 	}
