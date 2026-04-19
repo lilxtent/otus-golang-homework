@@ -14,19 +14,17 @@ type Task func() error
 func Run(tasks []Task, n, m int) error {
 	jobs := make(chan Task)
 	errorsChannel := make(chan error)
+	defer close(errorsChannel)
 	waitGroup := sync.WaitGroup{}
 	context, cancelJobs := context.WithCancel(context.Background())
 
 	go initErrorsWatcher(cancelJobs, m, errorsChannel)
 	initWorkers(context, n, jobs, errorsChannel, &waitGroup)
 
-	for _, task := range tasks {
-		jobs <- task
-	}
+	executeTask(context, tasks, jobs)
 
 	close(jobs)
 	waitGroup.Wait()
-	close(errorsChannel)
 
 	if err := context.Err(); err != nil {
 		return ErrErrorsLimitExceeded
@@ -36,14 +34,14 @@ func Run(tasks []Task, n, m int) error {
 }
 
 func initErrorsWatcher(cancelJobs context.CancelFunc, maxErrors int, errorsChannel <-chan error) {
+	if maxErrors <= 0 {
+		return
+	}
+
 	errorsCounter := 0
 
 	for range errorsChannel {
 		errorsCounter++
-
-		if maxErrors <= 0 {
-			continue
-		}
 
 		if errorsCounter >= maxErrors {
 			cancelJobs()
@@ -66,10 +64,25 @@ func initWorker(ctx context.Context, jobs <-chan Task, errorsChan chan<- error, 
 		select {
 		case <-ctx.Done():
 			return
-		case job := <-jobs:
+		case job, ok := <-jobs:
+			if !ok {
+				return
+			}
+
 			if error := job(); error != nil {
 				errorsChan <- error
 			}
+		}
+	}
+}
+
+func executeTask(ctx context.Context, tasks []Task, jobs chan<- Task) {
+	for _, task := range tasks {
+		select {
+		case <-ctx.Done():
+			return
+		case jobs <- task:
+			continue
 		}
 	}
 }

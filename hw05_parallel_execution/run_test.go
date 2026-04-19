@@ -21,7 +21,7 @@ func TestRun(t *testing.T) {
 
 		var runTasksCount int32
 
-		for i := 0; i < tasksCount; i++ {
+		for i := range tasksCount {
 			err := fmt.Errorf("error from task %d", i)
 			tasks = append(tasks, func() error {
 				time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
@@ -45,7 +45,7 @@ func TestRun(t *testing.T) {
 		var runTasksCount int32
 		var sumTime time.Duration
 
-		for i := 0; i < tasksCount; i++ {
+		for range tasksCount {
 			taskSleep := time.Millisecond * time.Duration(rand.Intn(100))
 			sumTime += taskSleep
 
