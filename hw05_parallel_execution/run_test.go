@@ -93,3 +93,50 @@ func MIsLessOrEquealZero(t *testing.T) {
 		})
 	}
 }
+
+func ConcurrencyWithoutSleep(t *testing.T) {
+	t.Run("Concurrency without sleep", func(t *testing.T) {
+		tasksCount := 50
+		tasks := make([]Task, 0, tasksCount)
+
+		var runTasksCountTotal int32
+		var currentlyRunning atomic.Int32
+		var maxConcurrent atomic.Int32
+		hangingChannel := make(chan struct{})
+
+		for range tasksCount {
+			tasks = append(tasks, func() error {
+				currentlyRunning.Add(1)
+				defer currentlyRunning.Add(-1)
+				atomic.AddInt32(&runTasksCountTotal, 1)
+				maxCurrent := maxConcurrent.Load()
+				currently := currentlyRunning.Load()
+
+				if currently > maxCurrent {
+					maxConcurrent.CompareAndSwap(maxCurrent, currently)
+				}
+
+				_ = <-hangingChannel
+
+				return nil
+			})
+		}
+
+		done := make(chan error)
+		workersCount := 5
+
+		go func() {
+			done <- Run(tasks, workersCount, 0)
+		}()
+
+		require.Eventually(t, func() bool {
+			return maxConcurrent.Load() == int32(workersCount)
+		}, 2*time.Second, 5*time.Millisecond)
+
+		close(hangingChannel)
+
+		_ = <-done
+
+		require.Equal(t, tasksCount, runTasksCountTotal, "all tasks run")
+	})
+}
