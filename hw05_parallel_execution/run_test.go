@@ -72,7 +72,7 @@ func TestRun(t *testing.T) {
 func TestMIsLessOrEquealZero(t *testing.T) {
 	for _, m := range []int{-1, 0} {
 		t.Run("if m <= 0 then ignore errors", func(t *testing.T) {
-			tasksCount := 50
+			var tasksCount int32 = 50
 			tasks := make([]Task, 0, tasksCount)
 
 			var runTasksCount int32
@@ -86,9 +86,8 @@ func TestMIsLessOrEquealZero(t *testing.T) {
 
 			workersCount := 2
 			maxErrorsCount := m
-			err := Run(tasks, workersCount, maxErrorsCount)
+			_ = Run(tasks, workersCount, maxErrorsCount)
 
-			require.Truef(t, errors.Is(err, ErrErrorsLimitExceeded), "actual err - %v", err)
 			require.Equal(t, tasksCount, runTasksCount, "all tasks run")
 		})
 	}

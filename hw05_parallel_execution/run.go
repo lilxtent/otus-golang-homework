@@ -34,13 +34,13 @@ func Run(tasks []Task, n, m int) error {
 }
 
 func initErrorsWatcher(cancelJobs context.CancelFunc, maxErrors int, errorsChannel <-chan error) {
-	if maxErrors <= 0 {
-		return
-	}
-
 	errorsCounter := 0
 
 	for range errorsChannel {
+		if maxErrors <= 0 {
+			continue
+		}
+
 		errorsCounter++
 
 		if errorsCounter >= maxErrors {
