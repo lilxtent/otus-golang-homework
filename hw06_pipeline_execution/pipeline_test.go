@@ -16,7 +16,7 @@ const (
 
 func TestPipeline(t *testing.T) {
 	// Stage generator
-	g := func(_ string, f func(v interface{}) interface{}) Stage {
+	g := func(_ string, f func(v any) any) Stage {
 		return func(in In) Out {
 			out := make(Bi)
 			go func() {
@@ -31,10 +31,10 @@ func TestPipeline(t *testing.T) {
 	}
 
 	stages := []Stage{
-		g("Dummy", func(v interface{}) interface{} { return v }),
-		g("Multiplier (* 2)", func(v interface{}) interface{} { return v.(int) * 2 }),
-		g("Adder (+ 100)", func(v interface{}) interface{} { return v.(int) + 100 }),
-		g("Stringifier", func(v interface{}) interface{} { return strconv.Itoa(v.(int)) }),
+		g("Dummy", func(v any) any { return v }),
+		g("Multiplier (* 2)", func(v any) any { return v.(int) * 2 }),
+		g("Adder (+ 100)", func(v any) any { return v.(int) + 100 }),
+		g("Stringifier", func(v any) any { return strconv.Itoa(v.(int)) }),
 	}
 
 	t.Run("simple case", func(t *testing.T) {
@@ -96,7 +96,7 @@ func TestPipeline(t *testing.T) {
 func TestAllStageStop(t *testing.T) {
 	wg := sync.WaitGroup{}
 	// Stage generator
-	g := func(_ string, f func(v interface{}) interface{}) Stage {
+	g := func(_ string, f func(v any) any) Stage {
 		return func(in In) Out {
 			out := make(Bi)
 			wg.Add(1)
@@ -113,10 +113,10 @@ func TestAllStageStop(t *testing.T) {
 	}
 
 	stages := []Stage{
-		g("Dummy", func(v interface{}) interface{} { return v }),
-		g("Multiplier (* 2)", func(v interface{}) interface{} { return v.(int) * 2 }),
-		g("Adder (+ 100)", func(v interface{}) interface{} { return v.(int) + 100 }),
-		g("Stringifier", func(v interface{}) interface{} { return strconv.Itoa(v.(int)) }),
+		g("Dummy", func(v any) any { return v }),
+		g("Multiplier (* 2)", func(v any) any { return v.(int) * 2 }),
+		g("Adder (+ 100)", func(v any) any { return v.(int) + 100 }),
+		g("Stringifier", func(v any) any { return strconv.Itoa(v.(int)) }),
 	}
 
 	t.Run("done case", func(t *testing.T) {
@@ -145,6 +145,93 @@ func TestAllStageStop(t *testing.T) {
 		wg.Wait()
 
 		require.Len(t, result, 0)
-
 	})
+}
+
+func TestExecutePipelineDoneAlreadyClosed(t *testing.T) {
+	in := make(Bi)
+	done := make(Bi)
+	close(done)
+
+	stages := []Stage{
+		func(in In) Out {
+			out := make(Bi)
+			go func() {
+				defer close(out)
+				for v := range in {
+					time.Sleep(sleepPerStage)
+					out <- v.(int) + 1
+				}
+			}()
+			return out
+		},
+	}
+
+	go func() {
+		for _, v := range []int{1, 2, 3} {
+			in <- v
+		}
+		close(in)
+	}()
+
+	start := time.Now()
+	result := make([]int, 0, 3)
+
+	for v := range ExecutePipeline(in, done, stages...) {
+		result = append(result, v.(int))
+	}
+
+	elapsed := time.Since(start)
+
+	require.Len(t, result, 0)
+	require.Less(t, int32(elapsed), int32(sleepPerStage)+int32(fault))
+}
+
+func TestExecutePipelineDoneAffectEvenOnLockedStages(t *testing.T) {
+	in := make(Bi)
+	done := make(Bi)
+
+	var wg sync.WaitGroup
+
+	stage := func(in In) Out {
+		out := make(Bi)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer close(out)
+			for v := range in {
+				out <- v
+			}
+		}()
+		return out
+	}
+
+	close(done)
+
+	outputDone := make(chan struct{})
+
+	go func() {
+		//nolint: revive
+		for range ExecutePipeline(in, done, stage) {
+		}
+		close(outputDone)
+	}()
+
+	select {
+	case <-outputDone:
+	case <-time.After(sleepPerStage):
+		t.Fatal("pipeline did not stop after done closed")
+	}
+
+	waitDone := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(waitDone)
+	}()
+
+	select {
+	case <-waitDone:
+	case <-time.After(sleepPerStage):
+		t.Fatal("stage goroutine did not exit after done closed")
+	}
 }
