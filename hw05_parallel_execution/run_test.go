@@ -21,7 +21,7 @@ func TestRun(t *testing.T) {
 
 		var runTasksCount int32
 
-		for i := 0; i < tasksCount; i++ {
+		for i := range tasksCount {
 			err := fmt.Errorf("error from task %d", i)
 			tasks = append(tasks, func() error {
 				time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
@@ -45,7 +45,7 @@ func TestRun(t *testing.T) {
 		var runTasksCount int32
 		var sumTime time.Duration
 
-		for i := 0; i < tasksCount; i++ {
+		for range tasksCount {
 			taskSleep := time.Millisecond * time.Duration(rand.Intn(100))
 			sumTime += taskSleep
 
@@ -67,4 +67,69 @@ func TestRun(t *testing.T) {
 		require.Equal(t, int32(tasksCount), runTasksCount, "not all tasks were completed")
 		require.LessOrEqual(t, int64(elapsedTime), int64(sumTime/2), "tasks were run sequentially?")
 	})
+}
+
+func TestMIsLessOrEquealZero(t *testing.T) {
+	for _, m := range []int{-1, 0} {
+		t.Run("if m <= 0 then ignore errors", func(t *testing.T) {
+			var tasksCount int32 = 50
+			tasks := make([]Task, 0, tasksCount)
+
+			var runTasksCount int32
+
+			for i := range tasksCount {
+				tasks = append(tasks, func() error {
+					atomic.AddInt32(&runTasksCount, 1)
+					return fmt.Errorf("error from task %d", i)
+				})
+			}
+
+			workersCount := 2
+			maxErrorsCount := m
+			_ = Run(tasks, workersCount, maxErrorsCount)
+
+			require.Equal(t, tasksCount, runTasksCount, "all tasks run")
+		})
+	}
+}
+
+func TestConcurrencyWithoutSleep(t *testing.T) {
+	tasksCount := 50
+	tasks := make([]Task, 0, tasksCount)
+
+	var currentlyRunning atomic.Int32
+	var maxConcurrent atomic.Int32
+	hangingChannel := make(chan struct{})
+
+	for range tasksCount {
+		tasks = append(tasks, func() error {
+			currentlyRunning.Add(1)
+			defer currentlyRunning.Add(-1)
+			maxCurrent := maxConcurrent.Load()
+			currently := currentlyRunning.Load()
+
+			if currently > maxCurrent {
+				maxConcurrent.CompareAndSwap(maxCurrent, currently)
+			}
+
+			<-hangingChannel
+
+			return nil
+		})
+	}
+
+	done := make(chan error)
+	workersCount := 5
+
+	go func() {
+		done <- Run(tasks, workersCount, 0)
+	}()
+
+	require.Eventually(t, func() bool {
+		return maxConcurrent.Load() == int32(workersCount)
+	}, 2*time.Second, 5*time.Millisecond)
+
+	close(hangingChannel)
+
+	<-done
 }
