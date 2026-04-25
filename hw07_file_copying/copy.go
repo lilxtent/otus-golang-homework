@@ -4,6 +4,8 @@ import (
 	"errors"
 	"io"
 	"os"
+
+	"github.com/cheggaaa/pb/v3"
 )
 
 var (
@@ -34,6 +36,15 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		return ErrOffsetExceedsFileSize
 	}
 
+	byteToCopy := fileSizeBytes - offset
+	if limit > 0 && limit < byteToCopy {
+		byteToCopy = limit
+	}
+
+	if byteToCopy <= 0 {
+		return nil
+	}
+
 	if _, err = fileFrom.Seek(offset, 0); err != nil {
 		return err
 	}
@@ -45,10 +56,11 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 
 	defer fileTo.Close()
 
-	reader := io.Reader(fileFrom)
-	if limit > 0 {
-		reader = io.LimitReader(fileFrom, limit)
-	}
+	bar := pb.New64(byteToCopy)
+	reader := bar.NewProxyReader(resolveReader(fileFrom, limit))
+
+	bar.Start()
+	defer bar.Finish()
 
 	buffer := make([]byte, int(bytesPerCopyDefault))
 	if _, err := io.CopyBuffer(fileTo, reader, buffer); err != nil {
@@ -56,4 +68,12 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	}
 
 	return nil
+}
+
+func resolveReader(file *os.File, limit int64) io.Reader {
+	if limit > 0 {
+		return io.LimitReader(file, limit)
+	}
+
+	return io.Reader(file)
 }
