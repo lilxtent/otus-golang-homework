@@ -16,14 +16,6 @@ const (
 )
 
 func Copy(fromPath, toPath string, offset, limit int64) error {
-	var bytesPerCopy int64
-
-	if limit > 0 && limit < bytesPerCopyDefault {
-		bytesPerCopy = limit
-	} else {
-		bytesPerCopy = bytesPerCopyDefault
-	}
-
 	fileFrom, err := os.Open(fromPath)
 	if err != nil {
 		return err
@@ -53,24 +45,14 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 
 	defer fileTo.Close()
 
-	var bytesCopiedCounter int64 = 0
+	reader := io.Reader(fileFrom)
+	if limit > 0 {
+		reader = io.LimitReader(fileFrom, limit)
+	}
 
-	for {
-		bytesCopied, err := io.CopyN(fileTo, fileFrom, bytesPerCopy)
-		bytesCopiedCounter += bytesCopied
-
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return err
-		}
-
-		if limit > 0 && bytesCopiedCounter == limit {
-			break
-		} else if limit != 0 && bytesCopiedCounter+bytesPerCopy > limit {
-			bytesPerCopy = limit - bytesCopiedCounter
-		}
+	buffer := make([]byte, int(bytesPerCopyDefault))
+	if _, err := io.CopyBuffer(fileTo, reader, buffer); err != nil {
+		return err
 	}
 
 	return nil
