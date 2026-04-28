@@ -20,14 +20,14 @@ const (
 func Copy(fromPath, toPath string, offset, limit int64) error {
 	fileFrom, err := os.Open(fromPath)
 	if err != nil {
-		return err
+		return ErrUnsupportedFile
 	}
 
 	defer fileFrom.Close()
 
 	fileStats, err := fileFrom.Stat()
 	if err != nil {
-		return ErrUnsupportedFile
+		return err
 	}
 
 	fileSizeBytes := fileStats.Size()
