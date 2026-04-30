@@ -36,7 +36,7 @@ func ReadDir(dir string) (Environment, error) {
 		dirEntryName := dirEntry.Name()
 		envFilePath := filepath.Join(dir, dirEntryName)
 
-		envFile, err := os.Open(envFilePath)
+		envFile, err := os.Open(filepath.Clean(envFilePath))
 		if err != nil {
 			return nil, err
 		}

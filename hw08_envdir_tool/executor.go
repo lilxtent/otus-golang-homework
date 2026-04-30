@@ -14,6 +14,7 @@ func RunCmd(cmd []string, env Environment) (returnCode int) {
 		return 1
 	}
 	//#nosec G204
+	//#gosec G702
 	command := exec.CommandContext(context.Background(), cmd[0], cmd[1:]...)
 
 	command.Env = joinEnvs(os.Environ(), env)
