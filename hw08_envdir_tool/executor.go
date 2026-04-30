@@ -39,17 +39,27 @@ func RunCmd(cmd []string, env Environment) (returnCode int) {
 }
 
 func joinEnvs(baseEnv []string, env Environment) []string {
-	resultEnv := make([]string, 0, len(baseEnv))
+	allEnvVars := make(map[string]string, len(baseEnv))
 
 	for _, baseEnvStr := range baseEnv {
 		envParts := strings.Split(baseEnvStr, "=")
-		envName := envParts[0]
+		varName := envParts[0]
+		varValue := envParts[1]
+		allEnvVars[varName] = varValue
+	}
 
-		if envElem, ok := env[envName]; ok && !envElem.NeedRemove {
-			resultEnv = append(resultEnv, envName+"="+envElem.Value)
+	for varName, varValue := range env {
+		if varValue.NeedRemove {
+			delete(allEnvVars, varName)
 		} else {
-			resultEnv = append(resultEnv, baseEnvStr)
+			allEnvVars[varName] = varValue.Value
 		}
+	}
+
+	resultEnv := make([]string, 0, len(allEnvVars))
+
+	for varName, varValue := range allEnvVars {
+		resultEnv = append(resultEnv, varName+"="+varValue)
 	}
 
 	return resultEnv
