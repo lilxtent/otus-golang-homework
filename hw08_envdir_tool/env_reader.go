@@ -34,6 +34,11 @@ func ReadDir(dir string) (Environment, error) {
 		}
 
 		dirEntryName := dirEntry.Name()
+
+		if strings.Contains(dirEntryName, "=") {
+			return nil, errors.New("file name cannot contains '=' symbol")
+		}
+
 		envFilePath := filepath.Join(dir, dirEntryName)
 
 		envFile, err := os.Open(filepath.Clean(envFilePath))
