@@ -43,7 +43,10 @@ func joinEnvs(baseEnv []string, env Environment) []string {
 	allEnvVars := make(map[string]string, len(baseEnv))
 
 	for _, baseEnvStr := range baseEnv {
-		envParts := strings.Split(baseEnvStr, "=")
+		envParts := strings.SplitN(baseEnvStr, "=", 2)
+		if len(envParts) != 2 {
+			continue
+		}
 		varName := envParts[0]
 		varValue := envParts[1]
 		allEnvVars[varName] = varValue

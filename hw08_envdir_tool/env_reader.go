@@ -50,7 +50,12 @@ func ReadDir(dir string) (Environment, error) {
 
 		firstLineBytes, isPrefix, err := envFileReader.ReadLine()
 		if err != nil && !errors.Is(err, io.EOF) {
+			_ = envFile.Close()
 			return nil, err
+		}
+
+		if closeErr := envFile.Close(); closeErr != nil {
+			return nil, closeErr
 		}
 
 		if isPrefix {
@@ -59,7 +64,7 @@ func ReadDir(dir string) (Environment, error) {
 
 		firstLineBytes = bytes.ReplaceAll(firstLineBytes, []byte{0x00}, []byte("\n"))
 		firstLineString := string(firstLineBytes)
-		needRemove := len(firstLineString) == 0
+		needRemove := errors.Is(err, io.EOF) && len(firstLineBytes) == 0
 		firstLineString = strings.TrimRight(firstLineString, " \t")
 
 		environment[dirEntryName] = EnvValue{
