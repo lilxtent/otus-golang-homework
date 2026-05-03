@@ -34,6 +34,12 @@ func TestCopy(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, data, out)
 	})
+
+	t.Run("Attempt to copy file with uknown size should retrun error", func(t *testing.T) {
+		err := Copy("/dev/urandom", "out_test_tmp.txt", 0, 0)
+
+		require.Error(t, ErrUnsupportedFile, err)
+	})
 }
 
 func TestCopyShouldBeSucces(t *testing.T) {
