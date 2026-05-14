@@ -9,6 +9,18 @@ import (
 
 type validateFunc func (value int64, tagValue string) error
 
+func ValidateIntSlice(values []int64, tagValue string) []error{
+	validatingErrors := make([]error, 0)
+
+	for _, value := range values {
+		if errors := ValidateInt(value, tagValue); errors != nil {
+			validatingErrors = append(validatingErrors, errors...)
+		}
+	}
+
+	return validatingErrors
+}
+
 func ValidateInt(value int64, tagValue string) []error{
 	tagsRaw := strings.Split(tagValue, "|")
 
