@@ -7,24 +7,23 @@ import (
 	"strings"
 )
 
-type validateIntFunc func (value int64, tagValue string) error
+type validateIntFunc func(value int64, tagValue string) error
 
 func getValidateIntFunc(validatorName string) (validateIntFunc, error) {
 	switch validatorName {
-		case "min":
-			return validateMin, nil
-		case "max":
-			return validateMax, nil
-		case "in":
-			return validateIn, nil
-		default:
-			return nil, errors.New("unsupported validator: "+validatorName)
-		}
+	case "min":
+		return validateMin, nil
+	case "max":
+		return validateMax, nil
+	case "in":
+		return validateIn, nil
+	default:
+		return nil, errors.New("unsupported validator: " + validatorName)
+	}
 }
 
 func validateMin(value int64, tagValue string) error {
 	minValue, err := strconv.ParseInt(tagValue, 10, 64)
-
 	if err != nil {
 		return err
 	}
@@ -38,7 +37,6 @@ func validateMin(value int64, tagValue string) error {
 
 func validateMax(value int64, tagValue string) error {
 	maxValue, err := strconv.ParseInt(tagValue, 10, 64)
-
 	if err != nil {
 		return err
 	}

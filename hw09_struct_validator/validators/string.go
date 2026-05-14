@@ -26,11 +26,10 @@ func getValidateStringFunc(validatorName string) (validateStringFunc, error) {
 
 func validateLen(value string, tagValue string) error {
 	expectedLength, err := strconv.ParseInt(tagValue, 10, 64)
-
 	if err != nil {
 		return err
 	}
-	
+
 	if len(value) != int(expectedLength) {
 		return fmt.Errorf("expected length of string %d but was %d", expectedLength, len(value))
 	}
@@ -40,7 +39,6 @@ func validateLen(value string, tagValue string) error {
 
 func validateRegExp(value string, tagValue string) error {
 	matched, err := regexp.MatchString(tagValue, value)
-
 	if err != nil {
 		return err
 	}
@@ -55,7 +53,7 @@ func validateRegExp(value string, tagValue string) error {
 func validateInString(value string, tagValue string) error {
 	expectedValues := strings.Split(tagValue, ",")
 
-	if !slices.Contains(expectedValues, value){
+	if !slices.Contains(expectedValues, value) {
 		return errors.New("forbidden value")
 	}
 

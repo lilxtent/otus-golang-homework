@@ -58,12 +58,10 @@ func executeValidation(value any, validatorName, validatorValue string) error {
 
 func executeValidationForInt(value any, validatorName, validatorValue string) error {
 	validateIntFunc, err := getValidateIntFunc(validatorName)
-
 	if err != nil {
 		return err
 	}
 	integer, err := anyIntToInt64(value)
-
 	if err != nil {
 		return err
 	}
@@ -73,7 +71,6 @@ func executeValidationForInt(value any, validatorName, validatorValue string) er
 
 func executeValidationForString(value string, validatorName, validatorValue string) error {
 	validateIntFunc, err := getValidateStringFunc(validatorName)
-
 	if err != nil {
 		return err
 	}

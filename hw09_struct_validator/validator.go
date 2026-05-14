@@ -44,12 +44,5 @@ func Validate(v any) ValidationErrors {
 		}
 
 	}
-
-	// validatingErrors := make(ValidationErrors, 0)
-
-	//if err != nil {
-	//	validatingErrors = append(validatingErrors, ValidationError{Field: "v", Err: err})
-	//	return validatingErrors
-	//}
 	return nil
 }
