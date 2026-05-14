@@ -7,54 +7,9 @@ import (
 	"strings"
 )
 
-type validateFunc func (value int64, tagValue string) error
+type validateIntFunc func (value int64, tagValue string) error
 
-func ValidateIntSlice(values []int64, tagValue string) []error{
-	validatingErrors := make([]error, 0)
-
-	for _, value := range values {
-		if errors := ValidateInt(value, tagValue); errors != nil {
-			validatingErrors = append(validatingErrors, errors...)
-		}
-	}
-
-	return validatingErrors
-}
-
-func ValidateInt(value int64, tagValue string) []error{
-	tagsRaw := strings.Split(tagValue, "|")
-
-	if len(tagsRaw) == 0 {
-		return nil
-	}
-
-	validatingErrors := make([]error, 0)
-
-	for _, tagRaw := range tagsRaw {
-		splitedTag := strings.Split(tagRaw, ":")
-
-		if len(splitedTag) != 2 {
-			validatingErrors = append(validatingErrors, errors.New("Too many ':' in tag "+tagRaw))
-			continue
-		}
-
-		validatorName := splitedTag[0]
-		validatorValue := splitedTag[1]
-		validateFunc, err := getValidateFunc(validatorName)
-		if err != nil {
-			validatingErrors = append(validatingErrors, err)
-			continue
-		}
-
-		if err := validateFunc(value, validatorValue); err != nil {
-			validatingErrors = append(validatingErrors, err)
-		}
-	}
-
-	return validatingErrors
-}
-
-func getValidateFunc(validatorName string) (validateFunc, error) {
+func getValidateIntFunc(validatorName string) (validateIntFunc, error) {
 	switch validatorName {
 		case "min":
 			return validateMin, nil

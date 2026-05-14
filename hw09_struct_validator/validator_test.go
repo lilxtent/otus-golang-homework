@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+
+	"github.com/fixme_my_friend/hw09_struct_validator/validators"
+	"github.com/stretchr/testify/require"
 )
 
 type UserRole string
@@ -55,6 +58,103 @@ func TestValidate(t *testing.T) {
 
 			// Place your code here.
 			_ = tt
+		})
+	}
+}
+
+func TestValidCases(t *testing.T) {
+	validCases := []struct {
+		value    any
+		tagValue string
+	}{
+		{value: 15, tagValue: `min:10`},
+		{value: 5, tagValue: `max:10`},
+		{value: 12, tagValue: `in:10,15`},
+		{value: 12, tagValue: `min:10|max:15`},
+		{value: "123", tagValue: `len:3`},
+		{value: "123", tagValue: `regexp:\d+`},
+		{value: "foo", tagValue: `in:foo,bar`},
+		{value: "foo", tagValue: `len:3|in:foo,bar`},
+	}
+
+	for _, tc := range validCases {
+		t.Run(tc.tagValue, func(t *testing.T) {
+			errors := validators.Validate(tc.value, tc.tagValue)
+
+			require.Empty(t, errors)
+		})
+	}
+}
+
+func TestInvalidCases(t *testing.T) {
+	invalidCases := []struct {
+		value    any
+		tagValue string
+	}{
+		{value: 5, tagValue: `min:10`},
+		{value: 15, tagValue: `max:10`},
+		{value: 5, tagValue: `in:10,15`},
+		{value: 20, tagValue: `in:10,15`},
+		{value: 5, tagValue: `min:10|max:15`},
+		{value: "1234", tagValue: `len:3`},
+		{value: "abc", tagValue: `regexp:\d+`},
+		{value: "unexpected", tagValue: `in:foo,bar`},
+		{value: "sixseven", tagValue: `len:3|in:foo,bar`},
+	}
+
+	for _, tc := range invalidCases {
+		t.Run(tc.tagValue, func(t *testing.T) {
+			errors := validators.Validate(tc.value, tc.tagValue)
+
+			require.NotEmpty(t, errors)
+		})
+	}
+}
+
+func TestValidSliceCases(t *testing.T) {
+	validCases := []struct {
+		values   []any
+		tagValue string
+	}{
+		{values: []any{15, 100, 150}, tagValue: `min:10`},
+		{values: []any{0, 5, 9}, tagValue: `max:10`},
+		{values: []any{12, 13, 14}, tagValue: `in:10,15`},
+		{values: []any{12, 13, 14}, tagValue: `min:10|max:15`},
+		{values: []any{"123", "345"}, tagValue: `len:3`},
+		{values: []any{"123", "345"}, tagValue: `regexp:\d+`},
+		{values: []any{"foo", "bar"}, tagValue: `in:foo,bar`},
+		{values: []any{"123", "345"}, tagValue: `len:3|in:123,345`},
+	}
+
+	for _, tc := range validCases {
+		t.Run(tc.tagValue, func(t *testing.T) {
+			errors := validators.ValidateSlice(tc.values, tc.tagValue)
+
+			require.Empty(t, errors)
+		})
+	}
+}
+
+func TestInvalidSliceCases(t *testing.T) {
+	invalidCases := []struct {
+		values   []any
+		tagValue string
+	}{
+		{values: []any{5, 9}, tagValue: `min:10`},
+		{values: []any{15, 100}, tagValue: `max:10`},
+		{values: []any{5, 20}, tagValue: `in:10,15`},
+		{values: []any{5, 20}, tagValue: `min:10|max:15`},
+		{values: []any{"123", "3456"}, tagValue: `len:3`},
+		{values: []any{"abc", "345"}, tagValue: `regexp:\d+`},
+		{values: []any{"foo", "notfoo"}, tagValue: `in:foo,bar`},
+		{values: []any{"123", "3456"}, tagValue: `len:3|in:123,3456`},
+	}
+
+	for _, tc := range invalidCases {
+		t.Run(tc.tagValue, func(t *testing.T) {
+			errors := validators.ValidateSlice(tc.values, tc.tagValue)
+
+			require.NotEmpty(t, errors)
 		})
 	}
 }
