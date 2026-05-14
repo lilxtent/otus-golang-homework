@@ -32,7 +32,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 
 	fileSizeBytes := fileStats.Size()
 
-	if fileSizeBytes == 0 {
+	if fileSizeBytes == 0 || !fileStats.Mode().IsRegular() {
 		return ErrUnsupportedFile
 	}
 
