@@ -25,11 +25,11 @@ func getValidateIntFunc(validatorName string) (validateIntFunc, error) {
 func validateMin(value int64, tagValue string) error {
 	minValue, err := strconv.ParseInt(tagValue, 10, 64)
 	if err != nil {
-		return err
+		return &TagDeclarationError{Msg: "failed to parse min value", Err: err}
 	}
 
 	if value < minValue {
-		return fmt.Errorf("value must be >= %d", value)
+		return &InvalidValueError{Msg: fmt.Sprintf("value must be >= %d", value)}
 	}
 
 	return nil

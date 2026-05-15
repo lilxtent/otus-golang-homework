@@ -10,7 +10,9 @@ type ValidationError struct {
 	Err   error
 }
 
-type ValidationErrors []ValidationError
+type (
+	ValidationErrors []ValidationError
+)
 
 func (v ValidationErrors) Error() string {
 	stringBuilder := strings.Builder{}
@@ -28,3 +30,18 @@ func NewValidationError(field string, err error) ValidationError {
 		Err:   err,
 	}
 }
+
+type TagDeclarationError struct {
+	Msg string
+	Err error
+}
+
+func (tagDeclarationError *TagDeclarationError) Error() string { return tagDeclarationError.Msg }
+
+func (tagDeclarationError *TagDeclarationError) Unwrap() error { return tagDeclarationError.Err }
+
+type InvalidValueError struct {
+	Msg string
+}
+
+func (invalidValueError *InvalidValueError) Error() string { return invalidValueError.Msg }
