@@ -2,6 +2,7 @@ package hw09structvalidator
 
 import (
 	"encoding/json"
+	stdErrors "errors"
 	"fmt"
 	"testing"
 
@@ -120,9 +121,40 @@ func TestValidate(t *testing.T) {
 	}
 }
 
+func TestValidateInvalidTagDeclaration(t *testing.T) {
+	t.Parallel()
+
+	in := struct {
+		Age    int      `validate:"min:old"`
+		Email  string   `validate:"regexp:["`
+		Phones []string `validate:"len:eleven"`
+	}{
+		Age:    30,
+		Email:  "ivan@example.com",
+		Phones: []string{"79991234567"},
+	}
+
+	errors := Validate(in)
+
+	require.Len(t, errors, 3)
+	for _, err := range errors {
+		require.IsType(t, ValidationError{}, err)
+
+		var tagDeclarationError *TagDeclarationError
+		require.True(t, stdErrors.As(err.Err, &tagDeclarationError))
+	}
+}
+
 func requireInvalidValueErrors(t *testing.T, errors []error) {
 	for _, err := range errors {
 		require.IsType(t, &InvalidValueError{}, err)
+	}
+}
+
+func requireTagDeclarationErrors(t *testing.T, errors []error) {
+	for _, err := range errors {
+		var tagDeclarationError *TagDeclarationError
+		require.True(t, stdErrors.As(err, &tagDeclarationError))
 	}
 }
 
@@ -176,6 +208,31 @@ func TestInvalidCases(t *testing.T) {
 	}
 }
 
+func TestInvalidTagDeclarationCases(t *testing.T) {
+	invalidCases := []struct {
+		value    any
+		tagValue string
+	}{
+		{value: 15, tagValue: `min:ten`},
+		{value: 15, tagValue: `max:ten`},
+		{value: 15, tagValue: `in:10,twenty`},
+		{value: 15, tagValue: `between:10,20`},
+		{value: "foo", tagValue: `len:three`},
+		{value: "foo", tagValue: `regexp:[`},
+		{value: "foo", tagValue: `contains:bar`},
+		{value: "foo", tagValue: `len`},
+	}
+
+	for _, tc := range invalidCases {
+		t.Run(tc.tagValue, func(t *testing.T) {
+			errors := ValidateFieldValue(tc.value, tc.tagValue)
+
+			require.NotEmpty(t, errors)
+			requireTagDeclarationErrors(t, errors)
+		})
+	}
+}
+
 func TestValidSliceCases(t *testing.T) {
 	validCases := []struct {
 		values   []any
@@ -196,6 +253,28 @@ func TestValidSliceCases(t *testing.T) {
 			errors := ValidateFieldValueSlice(tc.values, tc.tagValue)
 
 			require.Empty(t, errors)
+		})
+	}
+}
+
+func TestInvalidSliceTagDeclarationCases(t *testing.T) {
+	invalidCases := []struct {
+		values   []any
+		tagValue string
+	}{
+		{values: []any{15, 20}, tagValue: `min:ten`},
+		{values: []any{15, 20}, tagValue: `in:10,twenty`},
+		{values: []any{"foo", "bar"}, tagValue: `len:three`},
+		{values: []any{"foo", "bar"}, tagValue: `regexp:[`},
+		{values: []any{"foo", "bar"}, tagValue: `contains:foo`},
+	}
+
+	for _, tc := range invalidCases {
+		t.Run(tc.tagValue, func(t *testing.T) {
+			errors := ValidateFieldValueSlice(tc.values, tc.tagValue)
+
+			require.NotEmpty(t, errors)
+			requireTagDeclarationErrors(t, errors)
 		})
 	}
 }

@@ -100,7 +100,7 @@ func ValidateFieldValue(value any, tagValue string) []error {
 		splitedTag := strings.Split(tagRaw, ":")
 
 		if len(splitedTag) != 2 {
-			validatingErrors = append(validatingErrors, errors.New("Too many ':' in tag "+tagRaw))
+			validatingErrors = append(validatingErrors, &TagDeclarationError{Msg: "invalid tag declaration: " + tagRaw})
 			continue
 		}
 
