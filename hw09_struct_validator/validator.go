@@ -49,14 +49,29 @@ func ValidateStruct(structure reflect.Value, structureType reflect.Type) Validat
 }
 
 func validateStructField(field reflect.Value, tagValue string) []error {
-	fieldValue := field.Interface()
 	switch field.Kind() {
 	case reflect.Array, reflect.Slice:
-		return ValidateFieldValueSlice(fieldValue.([]any), tagValue)
+		values := make([]any, 0, field.Len())
+		for i := 0; i < field.Len(); i++ {
+			values = append(values, valueInterface(field.Index(i)))
+		}
+
+		return ValidateFieldValueSlice(values, tagValue)
 	case reflect.String, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return ValidateFieldValue(fieldValue, tagValue)
+		return ValidateFieldValue(valueInterface(field), tagValue)
 	default:
 		return []error{}
+	}
+}
+
+func valueInterface(value reflect.Value) any {
+	switch value.Kind() {
+	case reflect.String:
+		return value.String()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return value.Int()
+	default:
+		return value.Interface()
 	}
 }
 
