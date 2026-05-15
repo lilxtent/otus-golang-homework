@@ -40,23 +40,81 @@ type (
 
 func TestValidate(t *testing.T) {
 	tests := []struct {
-		in          interface{}
-		expectedErr error
+		name              string
+		in                any
+		expectedErrFields []string
 	}{
 		{
-			// Place your code here.
+			name: "valid user",
+			in: User{
+				ID:     "550e8400-e29b-41d4-a716-446655440000",
+				Name:   "Ivan",
+				Age:    30,
+				Email:  "ivan@example.com",
+				Role:   UserRole("admin"),
+				Phones: []string{"79991234567"},
+			},
 		},
-		// ...
-		// Place your code here.
+		{
+			name: "invalid user",
+			in: User{
+				ID:     "not-uuid",
+				Name:   "Ivan",
+				Age:    17,
+				Email:  "ivan.example.com",
+				Role:   UserRole("guest"),
+				Phones: []string{"79991234567", "123"},
+			},
+			expectedErrFields: []string{"ID", "Age", "Email", "Role", "Phones"},
+		},
+		{
+			name: "valid app",
+			in:   App{Version: "1.0.0"},
+		},
+		{
+			name:              "invalid app",
+			in:                App{Version: "1.0"},
+			expectedErrFields: []string{"Version"},
+		},
+		{
+			name: "token without validation tags",
+			in: Token{
+				Header:    []byte("header"),
+				Payload:   []byte("payload"),
+				Signature: []byte("signature"),
+			},
+		},
+		{
+			name: "valid response",
+			in:   Response{Code: 500, Body: "server error"},
+		},
+		{
+			name:              "invalid response",
+			in:                Response{Code: 201, Body: "created"},
+			expectedErrFields: []string{"Code"},
+		},
+		{
+			name: "nil",
+			in:   nil,
+		},
+		{
+			name: "non-struct",
+			in:   "not a struct",
+		},
 	}
 
 	for i, tt := range tests {
-		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("case %d %s", i, tt.name), func(t *testing.T) {
 			tt := tt
 			t.Parallel()
 
-			// Place your code here.
-			_ = tt
+			errors := Validate(tt.in)
+
+			require.Len(t, errors, len(tt.expectedErrFields))
+			for i, expectedField := range tt.expectedErrFields {
+				require.Equal(t, expectedField, errors[i].Field)
+				require.Error(t, errors[i].Err)
+			}
 		})
 	}
 }
@@ -68,7 +126,7 @@ func TestValidCases(t *testing.T) {
 	}{
 		{value: 15, tagValue: `min:10`},
 		{value: 5, tagValue: `max:10`},
-		{value: 12, tagValue: `in:10,15`},
+		{value: 10, tagValue: `in:10,15`},
 		{value: 12, tagValue: `min:10|max:15`},
 		{value: "123", tagValue: `len:3`},
 		{value: "123", tagValue: `regexp:\d+`},
@@ -93,7 +151,7 @@ func TestInvalidCases(t *testing.T) {
 		{value: 5, tagValue: `min:10`},
 		{value: 15, tagValue: `max:10`},
 		{value: 5, tagValue: `in:10,15`},
-		{value: 20, tagValue: `in:10,15`},
+		{value: 12, tagValue: `in:10,15`},
 		{value: 5, tagValue: `min:10|max:15`},
 		{value: "1234", tagValue: `len:3`},
 		{value: "abc", tagValue: `regexp:\d+`},
@@ -117,7 +175,7 @@ func TestValidSliceCases(t *testing.T) {
 	}{
 		{values: []any{15, 100, 150}, tagValue: `min:10`},
 		{values: []any{0, 5, 9}, tagValue: `max:10`},
-		{values: []any{12, 13, 14}, tagValue: `in:10,15`},
+		{values: []any{10, 15}, tagValue: `in:10,15`},
 		{values: []any{12, 13, 14}, tagValue: `min:10|max:15`},
 		{values: []any{"123", "345"}, tagValue: `len:3`},
 		{values: []any{"123", "345"}, tagValue: `regexp:\d+`},
