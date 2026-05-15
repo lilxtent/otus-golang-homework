@@ -112,10 +112,17 @@ func TestValidate(t *testing.T) {
 
 			require.Len(t, errors, len(tt.expectedErrFields))
 			for i, expectedField := range tt.expectedErrFields {
+				require.IsType(t, ValidationError{}, errors[i])
 				require.Equal(t, expectedField, errors[i].Field)
 				require.Error(t, errors[i].Err)
 			}
 		})
+	}
+}
+
+func requireInvalidValueErrors(t *testing.T, errors []error) {
+	for _, err := range errors {
+		require.IsType(t, &InvalidValueError{}, err)
 	}
 }
 
@@ -164,6 +171,7 @@ func TestInvalidCases(t *testing.T) {
 			errors := ValidateFieldValue(tc.value, tc.tagValue)
 
 			require.NotEmpty(t, errors)
+			requireInvalidValueErrors(t, errors)
 		})
 	}
 }
@@ -212,6 +220,7 @@ func TestInvalidSliceCases(t *testing.T) {
 			errors := ValidateFieldValueSlice(tc.values, tc.tagValue)
 
 			require.NotEmpty(t, errors)
+			requireInvalidValueErrors(t, errors)
 		})
 	}
 }
