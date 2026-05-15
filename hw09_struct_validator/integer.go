@@ -65,7 +65,8 @@ func validateIn(value int64, tagValue string) error {
 	}
 
 	if value < minValue || value > maxValue {
-		return &InvalidValueError{Msg: fmt.Sprintf("value expected to be in range [%d:%d] but was %d", minValue, maxValue, value)}
+		errMsg := fmt.Sprintf("value expected to be in range [%d:%d] but was %d", minValue, maxValue, value)
+		return &InvalidValueError{Msg: errMsg}
 	}
 
 	return nil
