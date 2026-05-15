@@ -23,6 +23,10 @@ func Validate(v any) ValidationErrors {
 	rootStruct := reflect.ValueOf(v)
 	rootType := rootStruct.Type()
 
+	if rootType.Kind() != reflect.Struct {
+		return nil
+	}
+
 	for i := 0; i < rootStruct.NumField(); i++ {
 		field := rootStruct.Field(i)
 		fieldType := rootType.Field(i)
