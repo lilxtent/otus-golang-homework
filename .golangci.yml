@@ -4,6 +4,7 @@ run:
     - bench
     - ""
   tests: true
+  relative-path-mode: gomod
 linters:
   default: none
   enable:
