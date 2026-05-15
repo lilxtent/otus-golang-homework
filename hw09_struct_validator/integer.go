@@ -1,7 +1,6 @@
 package hw09structvalidator
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -18,7 +17,7 @@ func getValidateIntFunc(validatorName string) (validateIntFunc, error) {
 	case "in":
 		return validateIn, nil
 	default:
-		return nil, errors.New("unsupported validator: " + validatorName)
+		return nil, &TagDeclarationError{Msg: "unsupported validator: " + validatorName}
 	}
 }
 
@@ -29,7 +28,7 @@ func validateMin(value int64, tagValue string) error {
 	}
 
 	if value < minValue {
-		return &InvalidValueError{Msg: fmt.Sprintf("value must be >= %d", value)}
+		return &InvalidValueError{Msg: fmt.Sprintf("value must be >= %d", minValue)}
 	}
 
 	return nil
@@ -38,11 +37,11 @@ func validateMin(value int64, tagValue string) error {
 func validateMax(value int64, tagValue string) error {
 	maxValue, err := strconv.ParseInt(tagValue, 10, 64)
 	if err != nil {
-		return err
+		return &TagDeclarationError{Msg: "failed to parse max value", Err: err}
 	}
 
 	if value > maxValue {
-		return fmt.Errorf("value must be <= %d", value)
+		return &InvalidValueError{Msg: fmt.Sprintf("value must be <= %d", maxValue)}
 	}
 
 	return nil
@@ -52,21 +51,21 @@ func validateIn(value int64, tagValue string) error {
 	bordersSplited := strings.Split(tagValue, ",")
 
 	if len(bordersSplited) != 2 {
-		return errors.New("invalid format for tag 'in': " + tagValue)
+		return &TagDeclarationError{Msg: "invalid format for tag 'in': " + tagValue}
 	}
 
 	minValue, err := strconv.ParseInt(bordersSplited[0], 10, 64)
 	if err != nil {
-		return err
+		return &TagDeclarationError{Msg: "failed to parse min value", Err: err}
 	}
 
 	maxValue, err := strconv.ParseInt(bordersSplited[1], 10, 64)
 	if err != nil {
-		return err
+		return &TagDeclarationError{Msg: "failed to parse max value", Err: err}
 	}
 
 	if value < minValue || value > maxValue {
-		return fmt.Errorf("value expected to be in range [%d:%d] but was %d", minValue, maxValue, value)
+		return &InvalidValueError{Msg: fmt.Sprintf("value expected to be in range [%d:%d] but was %d", minValue, maxValue, value)}
 	}
 
 	return nil

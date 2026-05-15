@@ -1,7 +1,6 @@
 package hw09structvalidator
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"slices"
@@ -20,18 +19,18 @@ func getValidateStringFunc(validatorName string) (validateStringFunc, error) {
 	case "in":
 		return validateInString, nil
 	default:
-		return nil, errors.New("unsupported validator: " + validatorName)
+		return nil, &TagDeclarationError{Msg: "unsupported validator: " + validatorName}
 	}
 }
 
 func validateLen(value string, tagValue string) error {
 	expectedLength, err := strconv.ParseInt(tagValue, 10, 64)
 	if err != nil {
-		return err
+		return &TagDeclarationError{Msg: "failed to parse length value", Err: err}
 	}
 
 	if len(value) != int(expectedLength) {
-		return fmt.Errorf("expected length of string %d but was %d", expectedLength, len(value))
+		return &InvalidValueError{Msg: fmt.Sprintf("expected length of string %d but was %d", expectedLength, len(value))}
 	}
 
 	return nil
@@ -40,11 +39,11 @@ func validateLen(value string, tagValue string) error {
 func validateRegExp(value string, tagValue string) error {
 	matched, err := regexp.MatchString(tagValue, value)
 	if err != nil {
-		return err
+		return &TagDeclarationError{Msg: "failed to compile regexp", Err: err}
 	}
 
 	if !matched {
-		return errors.New("regexp is not matched")
+		return &InvalidValueError{Msg: "regexp is not matched"}
 	}
 
 	return nil
@@ -54,7 +53,7 @@ func validateInString(value string, tagValue string) error {
 	expectedValues := strings.Split(tagValue, ",")
 
 	if !slices.Contains(expectedValues, value) {
-		return errors.New("forbidden value")
+		return &InvalidValueError{Msg: "forbidden value"}
 	}
 
 	return nil
