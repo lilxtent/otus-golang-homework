@@ -18,28 +18,46 @@ func Validate(v any) ValidationErrors {
 		return nil
 	}
 
-	for i := 0; i < rootStruct.NumField(); i++ {
-		field := rootStruct.Field(i)
-		fieldType := rootType.Field(i)
+	return ValidateStruct(rootStruct, rootType)
+}
+
+func ValidateStruct(structure reflect.Value, structureType reflect.Type) ValidationErrors {
+	validationErrors := make(ValidationErrors, 0)
+
+	for i := 0; i < structure.NumField(); i++ {
+		field := structure.Field(i)
+		fieldType := structureType.Field(i)
+		fieldName := fieldType.Name
 
 		tagValue := fieldType.Tag.Get("validate")
 		if tagValue == "" {
 			continue
 		}
 
-		switch field.Kind() {
-		case reflect.Struct:
-			continue
-		case reflect.String:
-			continue
-		case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64:
-			continue
-		default:
-			continue
+		if field.Kind() == reflect.Struct && tagValue == "nested" {
+			return ValidateStruct(field, field.Type())
 		}
 
+		errors := validateStructField(field, tagValue)
+
+		for _, err := range errors {
+			validationErrors = append(validationErrors, NewValidationError(fieldName, err))
+		}
 	}
-	return nil
+
+	return validationErrors
+}
+
+func validateStructField(field reflect.Value, tagValue string) []error {
+	fieldValue := field.Interface()
+	switch field.Kind() {
+	case reflect.Array, reflect.Slice:
+		return ValidateFieldValueSlice(fieldValue.([]any), tagValue)
+	case reflect.String, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return ValidateFieldValue(fieldValue, tagValue)
+	default:
+		return []error{}
+	}
 }
 
 func ValidateFieldValueSlice(values []any, tagValue string) []error {
