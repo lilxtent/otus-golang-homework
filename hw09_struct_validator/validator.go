@@ -49,7 +49,7 @@ func ValidateStruct(structure reflect.Value, structureType reflect.Type) Validat
 }
 
 func validateStructField(field reflect.Value, tagValue string) []error {
-	switch field.Kind() {
+	switch field.Kind() { //nolint:exhaustive // unsupported reflected kinds are intentionally ignored.
 	case reflect.Array, reflect.Slice:
 		values := make([]any, 0, field.Len())
 		for i := 0; i < field.Len(); i++ {
@@ -65,7 +65,7 @@ func validateStructField(field reflect.Value, tagValue string) []error {
 }
 
 func valueInterface(value reflect.Value) any {
-	switch value.Kind() {
+	switch value.Kind() { //nolint:exhaustive // other reflected kinds fall back to Interface.
 	case reflect.String:
 		return value.String()
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
