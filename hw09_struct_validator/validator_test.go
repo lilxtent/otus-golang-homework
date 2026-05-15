@@ -146,12 +146,14 @@ func TestValidateInvalidTagDeclaration(t *testing.T) {
 }
 
 func requireInvalidValueErrors(t *testing.T, errors []error) {
+	t.Helper()
 	for _, err := range errors {
 		require.IsType(t, &InvalidValueError{}, err)
 	}
 }
 
 func requireTagDeclarationErrors(t *testing.T, errors []error) {
+	t.Helper()
 	for _, err := range errors {
 		var tagDeclarationError *TagDeclarationError
 		require.True(t, stdErrors.As(err, &tagDeclarationError))
