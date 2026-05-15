@@ -1,11 +1,4 @@
-package validators
-
-type ValidationError struct {
-	Field string
-	Err   error
-}
-
-type ValidationErrors []ValidationError
+package hw09structvalidator
 
 func NewValidationError(field string, err error) ValidationError {
 	return ValidationError{

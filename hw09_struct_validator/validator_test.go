@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/fixme_my_friend/hw09_struct_validator/validators"
 	"github.com/stretchr/testify/require"
 )
 
@@ -79,7 +78,7 @@ func TestValidCases(t *testing.T) {
 
 	for _, tc := range validCases {
 		t.Run(tc.tagValue, func(t *testing.T) {
-			errors := validators.Validate(tc.value, tc.tagValue)
+			errors := ValidateFieldValue(tc.value, tc.tagValue)
 
 			require.Empty(t, errors)
 		})
@@ -104,7 +103,7 @@ func TestInvalidCases(t *testing.T) {
 
 	for _, tc := range invalidCases {
 		t.Run(tc.tagValue, func(t *testing.T) {
-			errors := validators.Validate(tc.value, tc.tagValue)
+			errors := ValidateFieldValue(tc.value, tc.tagValue)
 
 			require.NotEmpty(t, errors)
 		})
@@ -128,7 +127,7 @@ func TestValidSliceCases(t *testing.T) {
 
 	for _, tc := range validCases {
 		t.Run(tc.tagValue, func(t *testing.T) {
-			errors := validators.ValidateSlice(tc.values, tc.tagValue)
+			errors := ValidateFieldValueSlice(tc.values, tc.tagValue)
 
 			require.Empty(t, errors)
 		})
@@ -152,7 +151,7 @@ func TestInvalidSliceCases(t *testing.T) {
 
 	for _, tc := range invalidCases {
 		t.Run(tc.tagValue, func(t *testing.T) {
-			errors := validators.ValidateSlice(tc.values, tc.tagValue)
+			errors := ValidateFieldValueSlice(tc.values, tc.tagValue)
 
 			require.NotEmpty(t, errors)
 		})

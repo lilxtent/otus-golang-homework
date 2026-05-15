@@ -1,4 +1,4 @@
-package validators
+package hw09structvalidator
 
 import (
 	"errors"
