@@ -48,26 +48,20 @@ func validateMax(value int64, tagValue string) error {
 }
 
 func validateIn(value int64, tagValue string) error {
-	bordersSplited := strings.Split(tagValue, ",")
+	expectedValuesRaw := strings.Split(tagValue, ",")
 
-	if len(bordersSplited) != 2 {
-		return &TagDeclarationError{Msg: "invalid format for tag 'in': " + tagValue}
+	for _, expectedValueRaw := range expectedValuesRaw {
+		expectedValue, err := strconv.ParseInt(expectedValueRaw, 10, 64)
+		if err != nil {
+			return &TagDeclarationError{Msg: "failed to parse allowed value", Err: err}
+		}
+
+		if value == expectedValue {
+			return nil
+		}
 	}
 
-	minValue, err := strconv.ParseInt(bordersSplited[0], 10, 64)
-	if err != nil {
-		return &TagDeclarationError{Msg: "failed to parse min value", Err: err}
-	}
+	errMsg := fmt.Sprintf("value is not expected to be %d", value)
 
-	maxValue, err := strconv.ParseInt(bordersSplited[1], 10, 64)
-	if err != nil {
-		return &TagDeclarationError{Msg: "failed to parse max value", Err: err}
-	}
-
-	if value < minValue || value > maxValue {
-		errMsg := fmt.Sprintf("value expected to be in range [%d:%d] but was %d", minValue, maxValue, value)
-		return &InvalidValueError{Msg: errMsg}
-	}
-
-	return nil
+	return &InvalidValueError{Msg: errMsg}
 }
