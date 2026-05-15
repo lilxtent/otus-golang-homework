@@ -37,6 +37,15 @@ type (
 		Code int    `validate:"in:200,404,500"`
 		Body string `json:"omitempty"`
 	}
+
+	Meta struct {
+		CreatedBy string `validate:"len:5"`
+		Score     int    `validate:"min:1"`
+	}
+
+	UserWithMeta struct {
+		Meta Meta `validate:"nested"`
+	}
 )
 
 func TestValidate(t *testing.T) {
@@ -93,6 +102,25 @@ func TestValidate(t *testing.T) {
 			name:              "invalid response",
 			in:                Response{Code: 201, Body: "created"},
 			expectedErrFields: []string{"Code"},
+		},
+		{
+			name: "valid nested struct",
+			in: UserWithMeta{
+				Meta: Meta{
+					CreatedBy: "admin",
+					Score:     1,
+				},
+			},
+		},
+		{
+			name: "invalid nested struct",
+			in: UserWithMeta{
+				Meta: Meta{
+					CreatedBy: "root",
+					Score:     0,
+				},
+			},
+			expectedErrFields: []string{"CreatedBy", "Score"},
 		},
 		{
 			name: "nil",
