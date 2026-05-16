@@ -24,10 +24,9 @@ type DomainStat map[string]int
 func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
 	domainStat := make(DomainStat)
 	scanner := bufio.NewScanner(r)
-	var user User
 
 	for scanner.Scan() {
-		user = User{}
+		var user User
 		if err := easyjson.Unmarshal(scanner.Bytes(), &user); err != nil {
 			return nil, err
 		}
