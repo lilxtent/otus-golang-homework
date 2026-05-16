@@ -2,12 +2,14 @@ package hw10programoptimization
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/mailru/easyjson"
 )
 
+//easyjson:json
 type User struct {
 	ID       int
 	Name     string
@@ -36,7 +38,7 @@ func getUsers(r io.Reader) (result users, err error) {
 
 	for scanner.Scan() {
 		var user User
-		if err = json.Unmarshal(scanner.Bytes(), &user); err != nil {
+		if err = easyjson.Unmarshal(scanner.Bytes(), &user); err != nil {
 			return
 		}
 
