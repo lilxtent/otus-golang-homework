@@ -31,47 +31,11 @@ func easyjsonE3ab7953DecodeGithubComFixmeMyFriendHw10ProgramOptimization(in *jle
 		key := in.UnsafeFieldName(false)
 		in.WantColon()
 		switch key {
-		case "ID":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				out.ID = int(in.Int())
-			}
-		case "Name":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				out.Name = string(in.String())
-			}
-		case "Username":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				out.Username = string(in.String())
-			}
 		case "Email":
 			if in.IsNull() {
 				in.Skip()
 			} else {
 				out.Email = string(in.String())
-			}
-		case "Phone":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				out.Phone = string(in.String())
-			}
-		case "Password":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				out.Password = string(in.String())
-			}
-		case "Address":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				out.Address = string(in.String())
 			}
 		default:
 			in.SkipRecursive()
@@ -88,39 +52,9 @@ func easyjsonE3ab7953EncodeGithubComFixmeMyFriendHw10ProgramOptimization(out *jw
 	first := true
 	_ = first
 	{
-		const prefix string = ",\"ID\":"
-		out.RawString(prefix[1:])
-		out.Int(int(in.ID))
-	}
-	{
-		const prefix string = ",\"Name\":"
-		out.RawString(prefix)
-		out.String(string(in.Name))
-	}
-	{
-		const prefix string = ",\"Username\":"
-		out.RawString(prefix)
-		out.String(string(in.Username))
-	}
-	{
 		const prefix string = ",\"Email\":"
-		out.RawString(prefix)
+		out.RawString(prefix[1:])
 		out.String(string(in.Email))
-	}
-	{
-		const prefix string = ",\"Phone\":"
-		out.RawString(prefix)
-		out.String(string(in.Phone))
-	}
-	{
-		const prefix string = ",\"Password\":"
-		out.RawString(prefix)
-		out.String(string(in.Password))
-	}
-	{
-		const prefix string = ",\"Address\":"
-		out.RawString(prefix)
-		out.String(string(in.Address))
 	}
 	out.RawByte('}')
 }

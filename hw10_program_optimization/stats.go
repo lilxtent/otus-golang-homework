@@ -4,19 +4,11 @@ import (
 	"bufio"
 	"io"
 	"strings"
-
-	"github.com/mailru/easyjson"
 )
 
 //easyjson:json
 type User struct {
-	ID       int
-	Name     string
-	Username string
-	Email    string
-	Phone    string
-	Password string
-	Address  string
+	Email string
 }
 
 type DomainStat map[string]int
@@ -24,14 +16,15 @@ type DomainStat map[string]int
 func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
 	domainStat := make(DomainStat)
 	scanner := bufio.NewScanner(r)
+	expectedEmailSuffix := "." + domain
 
 	for scanner.Scan() {
-		var user User
-		if err := easyjson.Unmarshal(scanner.Bytes(), &user); err != nil {
+		user := User{}
+		if err := user.UnmarshalJSON(scanner.Bytes()); err != nil {
 			return nil, err
 		}
 
-		if !strings.HasSuffix(user.Email, "."+domain) {
+		if !strings.HasSuffix(user.Email, expectedEmailSuffix) {
 			continue
 		}
 
