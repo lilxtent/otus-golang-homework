@@ -5,6 +5,7 @@ package hw10programoptimization
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -50,6 +51,32 @@ func TestGetDomainStatInvalidJSON(t *testing.T) {
 {"Email":`
 
 	result, err := GetDomainStat(bytes.NewBufferString(data), "com")
+
+	require.Error(t, err)
+	require.Nil(t, result)
+}
+
+func TestGetDomainStatExactDomainSuffix(t *testing.T) {
+	data := `{"Email":"a@example.company"}
+{"Email":"b@example.com"}
+{"Email":"c@notcom"}`
+
+	result, err := GetDomainStat(bytes.NewBufferString(data), "com")
+
+	require.NoError(t, err)
+	require.Equal(t, DomainStat{
+		"example.com": 1,
+	}, result)
+}
+
+type brokenReader struct{}
+
+func (brokenReader) Read(_ []byte) (int, error) {
+	return 0, errors.New("error read")
+}
+
+func TestGetDomainStatReaderError(t *testing.T) {
+	result, err := GetDomainStat(brokenReader{}, "com")
 
 	require.Error(t, err)
 	require.Nil(t, result)
