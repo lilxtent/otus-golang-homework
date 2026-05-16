@@ -1,3 +1,4 @@
+//go:build !bench
 // +build !bench
 
 package hw10programoptimization
@@ -36,4 +37,11 @@ func TestGetDomainStat(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, DomainStat{}, result)
 	})
+
+	t.Run("find 'Linktype'", func(t *testing.T) {
+		result, err := GetDomainStat(bytes.NewBufferString(data), "Linktype")
+		require.NoError(t, err)
+		require.Equal(t, DomainStat{}, result)
+	})
+
 }
