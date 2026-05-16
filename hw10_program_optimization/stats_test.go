@@ -43,5 +43,14 @@ func TestGetDomainStat(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, DomainStat{}, result)
 	})
+}
 
+func TestGetDomainStatInvalidJSON(t *testing.T) {
+	data := `{"Email":"alice@example.com"}
+{"Email":`
+
+	result, err := GetDomainStat(bytes.NewBufferString(data), "com")
+
+	require.Error(t, err)
+	require.Nil(t, result)
 }
