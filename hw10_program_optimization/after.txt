@@ -1,0 +1,26 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/fixme_my_friend/hw10_program_optimization
+cpu: Apple M4 Max
+BenchmarkGetDomainStat-16    	      15	  74137411 ns/op	 234.37 MB/s	 2916141 B/op	  112115 allocs/op
+BenchmarkGetDomainStat-16    	      15	  74132694 ns/op	 234.38 MB/s	 2916150 B/op	  112115 allocs/op
+BenchmarkGetDomainStat-16    	      15	  74420600 ns/op	 233.47 MB/s	 2916150 B/op	  112115 allocs/op
+BenchmarkGetDomainStat-16    	      15	  73840764 ns/op	 235.31 MB/s	 2913163 B/op	  112114 allocs/op
+BenchmarkGetDomainStat-16    	      15	  73787700 ns/op	 235.48 MB/s	 2916140 B/op	  112115 allocs/op
+BenchmarkGetDomainStat-16    	      15	  73871322 ns/op	 235.21 MB/s	 2913164 B/op	  112114 allocs/op
+BenchmarkGetDomainStat-16    	      15	  73991239 ns/op	 234.83 MB/s	 2913172 B/op	  112114 allocs/op
+BenchmarkGetDomainStat-16    	      15	  74096217 ns/op	 234.50 MB/s	 2916140 B/op	  112115 allocs/op
+BenchmarkGetDomainStat-16    	      15	  73996472 ns/op	 234.81 MB/s	 2916141 B/op	  112115 allocs/op
+BenchmarkGetDomainStat-16    	      15	  74126569 ns/op	 234.40 MB/s	 2913163 B/op	  112114 allocs/op
+BenchmarkGetDomainStat-16    	      15	  73971225 ns/op	 234.89 MB/s	 2916140 B/op	  112115 allocs/op
+BenchmarkGetDomainStat-16    	      15	  73861178 ns/op	 235.24 MB/s	 2916139 B/op	  112115 allocs/op
+BenchmarkGetDomainStat-16    	      15	  73708139 ns/op	 235.73 MB/s	 2916144 B/op	  112115 allocs/op
+BenchmarkGetDomainStat-16    	      15	  73579006 ns/op	 236.15 MB/s	 2916144 B/op	  112115 allocs/op
+BenchmarkGetDomainStat-16    	      15	  74684792 ns/op	 232.65 MB/s	 2916150 B/op	  112115 allocs/op
+BenchmarkGetDomainStat-16    	      15	  74527850 ns/op	 233.14 MB/s	 2916150 B/op	  112115 allocs/op
+BenchmarkGetDomainStat-16    	      15	  74488800 ns/op	 233.26 MB/s	 2916141 B/op	  112115 allocs/op
+BenchmarkGetDomainStat-16    	      15	  74363178 ns/op	 233.66 MB/s	 2913163 B/op	  112114 allocs/op
+BenchmarkGetDomainStat-16    	      15	  76507650 ns/op	 227.11 MB/s	 2916141 B/op	  112115 allocs/op
+BenchmarkGetDomainStat-16    	      15	  75229125 ns/op	 230.97 MB/s	 2916142 B/op	  112115 allocs/op
+PASS
+ok  	github.com/fixme_my_friend/hw10_program_optimization	25.046s
