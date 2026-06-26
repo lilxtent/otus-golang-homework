@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"io"
 	"net"
 	"time"
@@ -31,7 +32,8 @@ type telnetClient struct {
 }
 
 func (c *telnetClient) Connect() error {
-	conn, err := net.DialTimeout("tcp", c.address, c.timeout)
+	dialer := net.Dialer{Timeout: c.timeout}
+	conn, err := dialer.DialContext(context.Background(), "tcp", c.address)
 	if err != nil {
 		return err
 	}
