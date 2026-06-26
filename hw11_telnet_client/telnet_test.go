@@ -62,4 +62,84 @@ func TestTelnetClient(t *testing.T) {
 
 		wg.Wait()
 	})
+
+	t.Run("connect returns error", func(t *testing.T) {
+		client := NewTelnetClient("127.0.0.1:0", time.Second, io.NopCloser(&bytes.Buffer{}), &bytes.Buffer{})
+		require.Error(t, client.Connect())
+	})
+
+	t.Run("send multiline input", func(t *testing.T) {
+		l, err := net.Listen("tcp", "127.0.0.1:")
+		require.NoError(t, err)
+		defer func() { require.NoError(t, l.Close()) }()
+
+		input := "hello\nfrom\ntelnet\n"
+		receivedCh := make(chan string, 1)
+		errCh := make(chan error, 1)
+
+		go func() {
+			conn, err := l.Accept()
+			if err != nil {
+				errCh <- err
+				return
+			}
+			defer func() { _ = conn.Close() }()
+
+			request := make([]byte, len(input))
+			if _, err = io.ReadFull(conn, request); err != nil {
+				errCh <- err
+				return
+			}
+
+			receivedCh <- string(request)
+			errCh <- nil
+		}()
+
+		client := NewTelnetClient(l.Addr().String(), time.Second, io.NopCloser(bytes.NewBufferString(input)), &bytes.Buffer{})
+		require.NoError(t, client.Connect())
+		defer func() { require.NoError(t, client.Close()) }()
+
+		require.NoError(t, client.Send())
+		require.NoError(t, <-errCh)
+		require.Equal(t, input, <-receivedCh)
+	})
+
+	t.Run("receive multiple chunks", func(t *testing.T) {
+		l, err := net.Listen("tcp", "127.0.0.1:")
+		require.NoError(t, err)
+		defer func() { require.NoError(t, l.Close()) }()
+
+		errCh := make(chan error, 1)
+		go func() {
+			conn, err := l.Accept()
+			if err != nil {
+				errCh <- err
+				return
+			}
+			defer func() { _ = conn.Close() }()
+
+			for _, chunk := range []string{"hello\n", "from\n", "server\n"} {
+				if _, err = conn.Write([]byte(chunk)); err != nil {
+					errCh <- err
+					return
+				}
+			}
+
+			errCh <- nil
+		}()
+
+		out := &bytes.Buffer{}
+		client := NewTelnetClient(l.Addr().String(), time.Second, io.NopCloser(&bytes.Buffer{}), out)
+		require.NoError(t, client.Connect())
+		defer func() { require.NoError(t, client.Close()) }()
+
+		require.NoError(t, client.Receive())
+		require.NoError(t, <-errCh)
+		require.Equal(t, "hello\nfrom\nserver\n", out.String())
+	})
+
+	t.Run("close before connect", func(t *testing.T) {
+		client := NewTelnetClient("127.0.0.1:0", time.Second, io.NopCloser(&bytes.Buffer{}), &bytes.Buffer{})
+		require.NoError(t, client.Close())
+	})
 }
