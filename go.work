@@ -11,4 +11,5 @@ use (
 	./hw08_envdir_tool
 	./hw09_struct_validator
 	./hw10_program_optimization
+	./hw11_telnet_client
 )
