@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,7 +18,7 @@ import (
 var configFile string
 
 func init() {
-	flag.StringVar(&configFile, "config", "/etc/calendar/config.toml", "Path to configuration file")
+	flag.StringVar(&configFile, "config", "configs/config.yaml", "Path to configuration file")
 }
 
 func main() {
@@ -28,7 +29,12 @@ func main() {
 		return
 	}
 
-	config := NewConfig()
+	config, err := NewConfig(configFile)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	logg := logger.New(config.Logger.Level)
 
 	storage := memorystorage.New()
