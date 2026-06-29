@@ -44,7 +44,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	strg, err := getStorage(config.Storage.Type)
+	strg, closeStorage, err := getStorage(config.Storage)
+	if err != nil {
+		logg.Error("failed to initialize storage: " + err.Error())
+		os.Exit(1)
+	}
+	defer func() {
+		if err := closeStorage(); err != nil {
+			logg.Error("failed to close storage: " + err.Error())
+		}
+	}()
+
 	calendar := app.New(logg, strg)
 
 	server := internalhttp.NewServer(logg, calendar)
@@ -73,13 +83,18 @@ func main() {
 	}
 }
 
-func getStorage(storageType StorageType) (storage.Storage, error) {
-	switch storageType {
+func getStorage(config StorageConf) (storage.Storage, func() error, error) {
+	switch config.Type {
 	case StorageMemory:
-		return memorystorage.New(), nil
+		return memorystorage.New(), func() error { return nil }, nil
 	case StorageSql:
-		return sqlstorage.New(), nil
+		db := sqlstorage.New(config.DSN)
+		if err := db.Connect(); err != nil {
+			return nil, nil, err
+		}
+
+		return db, db.Close, nil
 	default:
-		return nil, errors.New("unknown storage type: " + string(storageType))
+		return nil, nil, errors.New("unknown storage type: " + string(config.Type))
 	}
 }

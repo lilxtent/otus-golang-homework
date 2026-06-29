@@ -2,3 +2,4 @@ logger:
   level: INFO
 storage:
   type: MEMORY
+  dsn: postgres://postgres:password@localhost:5435/backend?sslmode=disable

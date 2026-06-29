@@ -10,6 +10,8 @@ POSTGRES_PASSWORD ?= password
 POSTGRES_DB ?= backend
 POSTGRES_PORT ?= 5435
 POSTGRES_CONTAINER := postgres-calendar
+POSTGRES_DSN ?= postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=disable
+MIGRATIONS_DIR ?= migrations
 
 #Rabbit
 RABBIT_USER ?= rabbit
@@ -27,6 +29,15 @@ run-postgres:
 	-p $(POSTGRES_PORT):5432 \
 	-v postgres-data:/var/lib/postgresql/data \
 	postgres:latest
+
+migrate:
+	go run github.com/pressly/goose/v3/cmd/goose@latest -dir $(MIGRATIONS_DIR) postgres "$(POSTGRES_DSN)" up
+
+migrate-down:
+	go run github.com/pressly/goose/v3/cmd/goose@latest -dir $(MIGRATIONS_DIR) postgres "$(POSTGRES_DSN)" down
+
+migrate-status:
+	go run github.com/pressly/goose/v3/cmd/goose@latest -dir $(MIGRATIONS_DIR) postgres "$(POSTGRES_DSN)" status
 
 run-rabbit:
 	docker run -d --name $(RABBIT_CONTAINER) \
@@ -55,7 +66,7 @@ version: build
 	$(BIN) version
 
 test:
-	go test -race ./internal/... ./pkg/...
+	go test -race ./...
 
 install-lint-deps:
 	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.57.2
@@ -63,4 +74,4 @@ install-lint-deps:
 lint: install-lint-deps
 	golangci-lint run ./...
 
-.PHONY: build run build-img run-img version test lint
+.PHONY: build run build-img run-img version test lint run-postgres run-rabbit migrate migrate-down migrate-status

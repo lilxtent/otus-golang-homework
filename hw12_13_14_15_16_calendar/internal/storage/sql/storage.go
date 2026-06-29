@@ -25,8 +25,12 @@ type SqlStorage struct {
 	db             *sql.DB
 }
 
-func New() *SqlStorage {
-	return &SqlStorage{dataSourceName: os.Getenv("DATABASE_URL")}
+func New(dataSourceName string) *SqlStorage {
+	if dataSourceName == "" {
+		dataSourceName = os.Getenv("DATABASE_URL")
+	}
+
+	return &SqlStorage{dataSourceName: dataSourceName}
 }
 
 func (s *SqlStorage) Connect() error {

@@ -24,6 +24,7 @@ type LoggerConf struct {
 
 type StorageConf struct {
 	Type StorageType
+	DSN  string
 }
 
 func NewConfig(path string) (Config, error) {
