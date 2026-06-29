@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"os"
+	"strings"
 )
 
 type Logger interface {
@@ -38,14 +39,16 @@ func (l *SLogger) Error(msg string) {
 }
 
 func mapLogLevel(level string) (slog.Level, error) {
-	switch level {
-	case "debug", "DEBUG":
+	levelInUpperCase := strings.ToUpper(level)
+
+	switch levelInUpperCase {
+	case "DEBUG":
 		return slog.LevelDebug, nil
-	case "info", "INFO":
+	case "INFO":
 		return slog.LevelInfo, nil
-	case "warn", "WARN":
+	case "WARN":
 		return slog.LevelWarn, nil
-	case "error", "ERROR":
+	case "ERROR":
 		return slog.LevelError, nil
 	default:
 		return slog.LevelError, errors.New("unexpected log level " + level)
