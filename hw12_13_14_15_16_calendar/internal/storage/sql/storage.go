@@ -1,7 +1,6 @@
 package sqlstorage
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -34,9 +33,9 @@ func New(dsn ...string) *Storage {
 	return &Storage{dsn: os.Getenv("DATABASE_URL")}
 }
 
-func (s *Storage) Connect(ctx context.Context) error {
+func (s *Storage) Connect() error {
 	if s.db != nil {
-		return s.db.PingContext(ctx)
+		return s.db.Ping()
 	}
 	if s.dsn == "" {
 		return fmt.Errorf("%w: empty dsn", ErrNotConnected)
@@ -46,7 +45,7 @@ func (s *Storage) Connect(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := db.PingContext(ctx); err != nil {
+	if err := db.Ping(); err != nil {
 		if closeErr := db.Close(); closeErr != nil {
 			return errors.Join(err, closeErr)
 		}
@@ -57,41 +56,32 @@ func (s *Storage) Connect(ctx context.Context) error {
 	return nil
 }
 
-func (s *Storage) Close(ctx context.Context) error {
+func (s *Storage) Close() error {
 	if s.db == nil {
 		return nil
 	}
 
-	done := make(chan error, 1)
-	go func() {
-		done <- s.db.Close()
-	}()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case err := <-done:
-		s.db = nil
-		return err
-	}
+	err := s.db.Close()
+	s.db = nil
+	return err
 }
 
-func (s *Storage) CreateEvent(ctx context.Context, event storage.Event) error {
+func (s *Storage) CreateEvent(event storage.Event) error {
 	if event.ID == uuid.Nil {
 		event.ID = uuid.New()
 	}
 
-	tx, err := s.beginTx(ctx)
+	tx, err := s.beginTx()
 	if err != nil {
 		return err
 	}
 	defer rollbackTx(tx)
 
-	if err := s.ensureDateAvailable(ctx, tx, event, uuid.Nil); err != nil {
+	if err := s.ensureDateAvailable(tx, event, uuid.Nil); err != nil {
 		return err
 	}
 
-	_, err = tx.ExecContext(ctx, `
+	_, err = tx.Exec(`
 		INSERT INTO events (
 			id,
 			title,
@@ -121,23 +111,23 @@ func (s *Storage) CreateEvent(ctx context.Context, event storage.Event) error {
 	return tx.Commit()
 }
 
-func (s *Storage) UpdateEvent(ctx context.Context, id uuid.UUID, event storage.Event) error {
-	tx, err := s.beginTx(ctx)
+func (s *Storage) UpdateEvent(id uuid.UUID, event storage.Event) error {
+	tx, err := s.beginTx()
 	if err != nil {
 		return err
 	}
 	defer rollbackTx(tx)
 
-	if err := ensureEventExists(ctx, tx, id); err != nil {
+	if err := ensureEventExists(tx, id); err != nil {
 		return err
 	}
 
 	event.ID = id
-	if err := s.ensureDateAvailable(ctx, tx, event, id); err != nil {
+	if err := s.ensureDateAvailable(tx, event, id); err != nil {
 		return err
 	}
 
-	result, err := tx.ExecContext(ctx, `
+	result, err := tx.Exec(`
 		UPDATE events
 		SET
 			title = $2,
@@ -171,13 +161,13 @@ func (s *Storage) UpdateEvent(ctx context.Context, id uuid.UUID, event storage.E
 	return tx.Commit()
 }
 
-func (s *Storage) DeleteEvent(ctx context.Context, id uuid.UUID) error {
+func (s *Storage) DeleteEvent(id uuid.UUID) error {
 	db, err := s.connection()
 	if err != nil {
 		return err
 	}
 
-	result, err := db.ExecContext(ctx, `DELETE FROM events WHERE id = $1`, id)
+	result, err := db.Exec(`DELETE FROM events WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}
@@ -193,28 +183,28 @@ func (s *Storage) DeleteEvent(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (s *Storage) ListEventsForDay(ctx context.Context, date time.Time) ([]storage.Event, error) {
+func (s *Storage) ListEventsForDay(date time.Time) ([]storage.Event, error) {
 	start := dayStart(date)
-	return s.listEventsBetween(ctx, start, start.AddDate(0, 0, 1))
+	return s.listEventsBetween(start, start.AddDate(0, 0, 1))
 }
 
-func (s *Storage) ListEventsForWeek(ctx context.Context, startOfWeek time.Time) ([]storage.Event, error) {
+func (s *Storage) ListEventsForWeek(startOfWeek time.Time) ([]storage.Event, error) {
 	start := dayStart(startOfWeek)
-	return s.listEventsBetween(ctx, start, start.AddDate(0, 0, 7))
+	return s.listEventsBetween(start, start.AddDate(0, 0, 7))
 }
 
-func (s *Storage) ListEventsForMonth(ctx context.Context, startOfMonth time.Time) ([]storage.Event, error) {
+func (s *Storage) ListEventsForMonth(startOfMonth time.Time) ([]storage.Event, error) {
 	start := dayStart(startOfMonth)
-	return s.listEventsBetween(ctx, start, start.AddDate(0, 1, 0))
+	return s.listEventsBetween(start, start.AddDate(0, 1, 0))
 }
 
-func (s *Storage) listEventsBetween(ctx context.Context, start, end time.Time) ([]storage.Event, error) {
+func (s *Storage) listEventsBetween(start, end time.Time) ([]storage.Event, error) {
 	db, err := s.connection()
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := db.QueryContext(ctx, `
+	rows, err := db.Query(`
 		SELECT
 			id,
 			title,
@@ -247,9 +237,9 @@ func (s *Storage) listEventsBetween(ctx context.Context, start, end time.Time) (
 	return events, nil
 }
 
-func (s *Storage) ensureDateAvailable(ctx context.Context, tx *sql.Tx, event storage.Event, excludedID uuid.UUID) error {
+func (s *Storage) ensureDateAvailable(tx *sql.Tx, event storage.Event, excludedID uuid.UUID) error {
 	var busy bool
-	err := tx.QueryRowContext(ctx, `
+	err := tx.QueryRow(`
 		SELECT EXISTS (
 			SELECT 1
 			FROM events
@@ -275,13 +265,13 @@ func (s *Storage) ensureDateAvailable(ctx context.Context, tx *sql.Tx, event sto
 	return nil
 }
 
-func (s *Storage) beginTx(ctx context.Context) (*sql.Tx, error) {
+func (s *Storage) beginTx() (*sql.Tx, error) {
 	db, err := s.connection()
 	if err != nil {
 		return nil, err
 	}
 
-	return db.BeginTx(ctx, nil)
+	return db.Begin()
 }
 
 func (s *Storage) connection() (*sql.DB, error) {
@@ -292,9 +282,9 @@ func (s *Storage) connection() (*sql.DB, error) {
 	return s.db, nil
 }
 
-func ensureEventExists(ctx context.Context, tx *sql.Tx, id uuid.UUID) error {
+func ensureEventExists(tx *sql.Tx, id uuid.UUID) error {
 	var exists bool
-	err := tx.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM events WHERE id = $1)`, id).Scan(&exists)
+	err := tx.QueryRow(`SELECT EXISTS (SELECT 1 FROM events WHERE id = $1)`, id).Scan(&exists)
 	if err != nil {
 		return err
 	}
