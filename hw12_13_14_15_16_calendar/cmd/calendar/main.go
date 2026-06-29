@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -12,7 +13,9 @@ import (
 	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/app"
 	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/logger"
 	internalhttp "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/server/http"
+	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage"
 	memorystorage "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage/memory"
+	sqlstorage "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage/sql"
 )
 
 var configFile string
@@ -41,8 +44,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	storage := memorystorage.New()
-	calendar := app.New(logg, storage)
+	strg, err := getStorage(config.Storage.Type)
+	calendar := app.New(logg, strg)
 
 	server := internalhttp.NewServer(logg, calendar)
 
@@ -67,5 +70,16 @@ func main() {
 		logg.Error("failed to start http server: " + err.Error())
 		cancel()
 		os.Exit(1) //nolint:gocritic
+	}
+}
+
+func getStorage(storageType StorageType) (storage.Storage, error) {
+	switch storageType {
+	case StorageMemory:
+		return memorystorage.New(), nil
+	case StorageSql:
+		return sqlstorage.New(), nil
+	default:
+		return nil, errors.New("unknown storage type: " + string(storageType))
 	}
 }

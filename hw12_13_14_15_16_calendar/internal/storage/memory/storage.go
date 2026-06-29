@@ -16,7 +16,7 @@ const (
 	dateKeyFmt  = "20060102150405.000000000"
 )
 
-type Storage struct {
+type MemoryStorage struct {
 	db *memdb.MemDB
 }
 
@@ -26,7 +26,7 @@ type eventRecord struct {
 	Event   storage.Event
 }
 
-func New() *Storage {
+func New() *MemoryStorage {
 	db, err := memdb.NewMemDB(&memdb.DBSchema{
 		Tables: map[string]*memdb.TableSchema{
 			eventsTable: {
@@ -50,10 +50,10 @@ func New() *Storage {
 		panic(err)
 	}
 
-	return &Storage{db: db}
+	return &MemoryStorage{db: db}
 }
 
-func (s *Storage) CreateEvent(event storage.Event) error {
+func (s *MemoryStorage) CreateEvent(event storage.Event) error {
 	if event.ID == uuid.Nil {
 		event.ID = uuid.New()
 	}
@@ -81,7 +81,7 @@ func (s *Storage) CreateEvent(event storage.Event) error {
 	return nil
 }
 
-func (s *Storage) UpdateEvent(id uuid.UUID, event storage.Event) error {
+func (s *MemoryStorage) UpdateEvent(id uuid.UUID, event storage.Event) error {
 	txn := s.db.Txn(true)
 	defer txn.Abort()
 
@@ -109,7 +109,7 @@ func (s *Storage) UpdateEvent(id uuid.UUID, event storage.Event) error {
 	return nil
 }
 
-func (s *Storage) DeleteEvent(id uuid.UUID) error {
+func (s *MemoryStorage) DeleteEvent(id uuid.UUID) error {
 	txn := s.db.Txn(true)
 	defer txn.Abort()
 
@@ -129,22 +129,22 @@ func (s *Storage) DeleteEvent(id uuid.UUID) error {
 	return nil
 }
 
-func (s *Storage) ListEventsForDay(date time.Time) ([]storage.Event, error) {
+func (s *MemoryStorage) ListEventsForDay(date time.Time) ([]storage.Event, error) {
 	start := dayStart(date)
 	return s.listEventsBetween(start, start.AddDate(0, 0, 1))
 }
 
-func (s *Storage) ListEventsForWeek(startOfWeek time.Time) ([]storage.Event, error) {
+func (s *MemoryStorage) ListEventsForWeek(startOfWeek time.Time) ([]storage.Event, error) {
 	start := dayStart(startOfWeek)
 	return s.listEventsBetween(start, start.AddDate(0, 0, 7))
 }
 
-func (s *Storage) ListEventsForMonth(startOfMonth time.Time) ([]storage.Event, error) {
+func (s *MemoryStorage) ListEventsForMonth(startOfMonth time.Time) ([]storage.Event, error) {
 	start := dayStart(startOfMonth)
 	return s.listEventsBetween(start, start.AddDate(0, 1, 0))
 }
 
-func (s *Storage) listEventsBetween(start, end time.Time) ([]storage.Event, error) {
+func (s *MemoryStorage) listEventsBetween(start, end time.Time) ([]storage.Event, error) {
 	txn := s.db.Txn(false)
 	defer txn.Abort()
 
