@@ -18,10 +18,7 @@ import (
 const uniqueViolationCode = "23505"
 
 var (
-	ErrEventAlreadyExists = errors.New("event already exists")
-	ErrEventNotFound      = errors.New("event not found")
-	ErrDateBusy           = errors.New("date is busy")
-	ErrNotConnected       = errors.New("database is not connected")
+	ErrNotConnected = errors.New("database is not connected")
 )
 
 type Storage struct {
@@ -115,7 +112,7 @@ func (s *Storage) CreateEvent(ctx context.Context, event storage.Event) error {
 		nullableDuration(event.NotifyBefore),
 	)
 	if isUniqueViolation(err) {
-		return ErrEventAlreadyExists
+		return storage.ErrEventAlreadyExists
 	}
 	if err != nil {
 		return err
@@ -168,7 +165,7 @@ func (s *Storage) UpdateEvent(ctx context.Context, id uuid.UUID, event storage.E
 		return err
 	}
 	if affected == 0 {
-		return ErrEventNotFound
+		return storage.ErrEventNotFound
 	}
 
 	return tx.Commit()
@@ -190,7 +187,7 @@ func (s *Storage) DeleteEvent(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 	if affected == 0 {
-		return ErrEventNotFound
+		return storage.ErrEventNotFound
 	}
 
 	return nil
@@ -272,7 +269,7 @@ func (s *Storage) ensureDateAvailable(ctx context.Context, tx *sql.Tx, event sto
 		return err
 	}
 	if busy {
-		return ErrDateBusy
+		return storage.ErrDateBusy
 	}
 
 	return nil
@@ -302,7 +299,7 @@ func ensureEventExists(ctx context.Context, tx *sql.Tx, id uuid.UUID) error {
 		return err
 	}
 	if !exists {
-		return ErrEventNotFound
+		return storage.ErrEventNotFound
 	}
 
 	return nil

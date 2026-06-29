@@ -1,7 +1,6 @@
 package memorystorage
 
 import (
-	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,12 +14,6 @@ const (
 	idIndex     = "id"
 	dateIndex   = "date"
 	dateKeyFmt  = "20060102150405.000000000"
-)
-
-var (
-	ErrEventAlreadyExists = errors.New("event already exists")
-	ErrEventNotFound      = errors.New("event not found")
-	ErrDateBusy           = errors.New("date is busy")
 )
 
 type Storage struct {
@@ -73,7 +66,7 @@ func (s *Storage) CreateEvent(event storage.Event) error {
 		return err
 	}
 	if found != nil {
-		return ErrEventAlreadyExists
+		return storage.ErrEventAlreadyExists
 	}
 
 	if err := ensureDateAvailable(txn, event, uuid.Nil); err != nil {
@@ -97,7 +90,7 @@ func (s *Storage) UpdateEvent(id uuid.UUID, event storage.Event) error {
 		return err
 	}
 	if existing == nil {
-		return ErrEventNotFound
+		return storage.ErrEventNotFound
 	}
 
 	event.ID = id
@@ -125,7 +118,7 @@ func (s *Storage) DeleteEvent(id uuid.UUID) error {
 		return err
 	}
 	if existing == nil {
-		return ErrEventNotFound
+		return storage.ErrEventNotFound
 	}
 
 	if err := txn.Delete(eventsTable, existing); err != nil {
@@ -186,7 +179,7 @@ func ensureDateAvailable(txn *memdb.Txn, event storage.Event, excludedID uuid.UU
 			continue
 		}
 		if eventsOverlap(stored, event) {
-			return ErrDateBusy
+			return storage.ErrDateBusy
 		}
 	}
 

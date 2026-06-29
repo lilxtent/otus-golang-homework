@@ -93,7 +93,7 @@ func TestStorageDeleteEvent(t *testing.T) {
 		t.Fatalf("expected no events, got %d", len(events))
 	}
 
-	if err := db.DeleteEvent(event.ID); !errors.Is(err, ErrEventNotFound) {
+	if err := db.DeleteEvent(event.ID); !errors.Is(err, storage.ErrEventNotFound) {
 		t.Fatalf("expected ErrEventNotFound, got %v", err)
 	}
 }
@@ -109,7 +109,7 @@ func TestStorageDateBusy(t *testing.T) {
 	if err := db.CreateEvent(event); err != nil {
 		t.Fatalf("create event: %v", err)
 	}
-	if err := db.CreateEvent(overlapping); !errors.Is(err, ErrDateBusy) {
+	if err := db.CreateEvent(overlapping); !errors.Is(err, storage.ErrDateBusy) {
 		t.Fatalf("expected ErrDateBusy, got %v", err)
 	}
 }
