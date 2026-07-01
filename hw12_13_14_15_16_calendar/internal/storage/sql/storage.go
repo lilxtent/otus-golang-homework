@@ -219,7 +219,9 @@ func (s *SQLStorage) listEventsBetween(start, end time.Time) ([]storage.Event, e
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
 
 	events := make([]storage.Event, 0)
 	for rows.Next() {
