@@ -14,12 +14,18 @@ const (
 // при их конструировании только необходимые параметры, а также уменьшает вероятность циклической зависимости.
 type Config struct {
 	Logger  LoggerConf
+	HTTP    HTTPConf
 	Storage StorageConf
 }
 
 type LoggerConf struct {
 	Level string
 	// TODO
+}
+
+type HTTPConf struct {
+	Host string
+	Port int
 }
 
 type StorageConf struct {
