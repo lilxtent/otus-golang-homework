@@ -7,18 +7,15 @@ import (
 	"os"
 	"time"
 
+	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
-
-	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage"
 )
 
 const uniqueViolationCode = "23505"
 
-var (
-	ErrNotConnected = errors.New("database is not connected")
-)
+var ErrNotConnected = errors.New("database is not connected")
 
 type SqlStorage struct {
 	dataSourceName string
@@ -297,7 +294,8 @@ func ensureEventExists(tx *sql.Tx, id uuid.UUID) error {
 
 func scanEvent(scanner interface {
 	Scan(dest ...any) error
-}) (storage.Event, error) {
+},
+) (storage.Event, error) {
 	var (
 		idRaw           string
 		userIDRaw       string

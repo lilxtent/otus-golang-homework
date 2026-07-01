@@ -3,10 +3,9 @@ package memorystorage
 import (
 	"time"
 
+	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-memdb"
-
-	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage"
 )
 
 const (
