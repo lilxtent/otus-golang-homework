@@ -1,6 +1,7 @@
 package sqlstorage
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
+	// Register the pgx database/sql driver.
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -17,22 +19,22 @@ const uniqueViolationCode = "23505"
 
 var ErrNotConnected = errors.New("database is not connected")
 
-type SqlStorage struct {
+type SQLStorage struct {
 	dataSourceName string
 	db             *sql.DB
 }
 
-func New(dataSourceName string) *SqlStorage {
+func New(dataSourceName string) *SQLStorage {
 	if dataSourceName == "" {
 		dataSourceName = os.Getenv("DATABASE_URL")
 	}
 
-	return &SqlStorage{dataSourceName: dataSourceName}
+	return &SQLStorage{dataSourceName: dataSourceName}
 }
 
-func (s *SqlStorage) Connect() error {
+func (s *SQLStorage) Connect() error {
 	if s.db != nil {
-		return s.db.Ping()
+		return s.db.PingContext(context.Background())
 	}
 	if s.dataSourceName == "" {
 		return fmt.Errorf("%w: empty dsn", ErrNotConnected)
@@ -42,7 +44,7 @@ func (s *SqlStorage) Connect() error {
 	if err != nil {
 		return err
 	}
-	if err := db.Ping(); err != nil {
+	if err := db.PingContext(context.Background()); err != nil {
 		if closeErr := db.Close(); closeErr != nil {
 			return errors.Join(err, closeErr)
 		}
@@ -53,7 +55,7 @@ func (s *SqlStorage) Connect() error {
 	return nil
 }
 
-func (s *SqlStorage) Close() error {
+func (s *SQLStorage) Close() error {
 	if s.db == nil {
 		return nil
 	}
@@ -63,7 +65,7 @@ func (s *SqlStorage) Close() error {
 	return err
 }
 
-func (s *SqlStorage) CreateEvent(event storage.Event) error {
+func (s *SQLStorage) CreateEvent(event storage.Event) error {
 	if event.ID == uuid.Nil {
 		event.ID = uuid.New()
 	}
@@ -78,7 +80,7 @@ func (s *SqlStorage) CreateEvent(event storage.Event) error {
 		return err
 	}
 
-	_, err = tx.Exec(`
+	_, err = tx.ExecContext(context.Background(), `
 		INSERT INTO events (
 			id,
 			title,
@@ -108,7 +110,7 @@ func (s *SqlStorage) CreateEvent(event storage.Event) error {
 	return tx.Commit()
 }
 
-func (s *SqlStorage) UpdateEvent(id uuid.UUID, event storage.Event) error {
+func (s *SQLStorage) UpdateEvent(id uuid.UUID, event storage.Event) error {
 	tx, err := s.beginTx()
 	if err != nil {
 		return err
@@ -124,7 +126,7 @@ func (s *SqlStorage) UpdateEvent(id uuid.UUID, event storage.Event) error {
 		return err
 	}
 
-	result, err := tx.Exec(`
+	result, err := tx.ExecContext(context.Background(), `
 		UPDATE events
 		SET
 			title = $2,
@@ -158,13 +160,13 @@ func (s *SqlStorage) UpdateEvent(id uuid.UUID, event storage.Event) error {
 	return tx.Commit()
 }
 
-func (s *SqlStorage) DeleteEvent(id uuid.UUID) error {
+func (s *SQLStorage) DeleteEvent(id uuid.UUID) error {
 	db, err := s.connection()
 	if err != nil {
 		return err
 	}
 
-	result, err := db.Exec(`DELETE FROM events WHERE id = $1`, id)
+	result, err := db.ExecContext(context.Background(), `DELETE FROM events WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}
@@ -180,28 +182,28 @@ func (s *SqlStorage) DeleteEvent(id uuid.UUID) error {
 	return nil
 }
 
-func (s *SqlStorage) ListEventsForDay(date time.Time) ([]storage.Event, error) {
+func (s *SQLStorage) ListEventsForDay(date time.Time) ([]storage.Event, error) {
 	start := dayStart(date)
 	return s.listEventsBetween(start, start.AddDate(0, 0, 1))
 }
 
-func (s *SqlStorage) ListEventsForWeek(startOfWeek time.Time) ([]storage.Event, error) {
+func (s *SQLStorage) ListEventsForWeek(startOfWeek time.Time) ([]storage.Event, error) {
 	start := dayStart(startOfWeek)
 	return s.listEventsBetween(start, start.AddDate(0, 0, 7))
 }
 
-func (s *SqlStorage) ListEventsForMonth(startOfMonth time.Time) ([]storage.Event, error) {
+func (s *SQLStorage) ListEventsForMonth(startOfMonth time.Time) ([]storage.Event, error) {
 	start := dayStart(startOfMonth)
 	return s.listEventsBetween(start, start.AddDate(0, 1, 0))
 }
 
-func (s *SqlStorage) listEventsBetween(start, end time.Time) ([]storage.Event, error) {
+func (s *SQLStorage) listEventsBetween(start, end time.Time) ([]storage.Event, error) {
 	db, err := s.connection()
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := db.Query(`
+	rows, err := db.QueryContext(context.Background(), `
 		SELECT
 			id,
 			title,
@@ -234,9 +236,9 @@ func (s *SqlStorage) listEventsBetween(start, end time.Time) ([]storage.Event, e
 	return events, nil
 }
 
-func (s *SqlStorage) ensureDateAvailable(tx *sql.Tx, event storage.Event, excludedID uuid.UUID) error {
+func (s *SQLStorage) ensureDateAvailable(tx *sql.Tx, event storage.Event, excludedID uuid.UUID) error {
 	var busy bool
-	err := tx.QueryRow(`
+	err := tx.QueryRowContext(context.Background(), `
 		SELECT EXISTS (
 			SELECT 1
 			FROM events
@@ -262,16 +264,16 @@ func (s *SqlStorage) ensureDateAvailable(tx *sql.Tx, event storage.Event, exclud
 	return nil
 }
 
-func (s *SqlStorage) beginTx() (*sql.Tx, error) {
+func (s *SQLStorage) beginTx() (*sql.Tx, error) {
 	db, err := s.connection()
 	if err != nil {
 		return nil, err
 	}
 
-	return db.Begin()
+	return db.BeginTx(context.Background(), nil)
 }
 
-func (s *SqlStorage) connection() (*sql.DB, error) {
+func (s *SQLStorage) connection() (*sql.DB, error) {
 	if s.db == nil {
 		return nil, ErrNotConnected
 	}
@@ -281,7 +283,11 @@ func (s *SqlStorage) connection() (*sql.DB, error) {
 
 func ensureEventExists(tx *sql.Tx, id uuid.UUID) error {
 	var exists bool
-	err := tx.QueryRow(`SELECT EXISTS (SELECT 1 FROM events WHERE id = $1)`, id).Scan(&exists)
+	err := tx.QueryRowContext(
+		context.Background(),
+		`SELECT EXISTS (SELECT 1 FROM events WHERE id = $1)`,
+		id,
+	).Scan(&exists)
 	if err != nil {
 		return err
 	}

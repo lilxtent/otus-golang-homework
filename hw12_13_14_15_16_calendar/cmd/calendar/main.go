@@ -38,26 +38,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	logg, err := logger.New(config.Logger.Level)
+	log, err := logger.New(config.Logger.Level)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	strg, closeStorage, err := getStorage(config.Storage)
+	strg, err := getStorage(config.Storage, log)
 	if err != nil {
-		logg.Error("failed to initialize storage: " + err.Error())
+		log.Error("failed to initialize storage: " + err.Error())
 		os.Exit(1)
 	}
-	defer func() {
-		if err := closeStorage(); err != nil {
-			logg.Error("failed to close storage: " + err.Error())
-		}
-	}()
 
-	calendar := app.New(logg, strg)
+	calendar := app.New(log, strg)
 
-	server := internalhttp.NewServer(logg, config.HTTP.Host, config.HTTP.Port, calendar)
+	server := internalhttp.NewServer(log, config.HTTP.Host, config.HTTP.Port, calendar)
 
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
@@ -70,31 +65,38 @@ func main() {
 		defer cancel()
 
 		if err := server.Stop(ctx); err != nil {
-			logg.Error("failed to stop http server: " + err.Error())
+			log.Error("failed to stop http server: " + err.Error())
 		}
 	}()
 
-	logg.Info("calendar is running...")
+	log.Info("calendar is running...")
 
 	if err := server.Start(ctx); err != nil {
-		logg.Error("failed to start http server: " + err.Error())
+		log.Error("failed to start http server: " + err.Error())
 		cancel()
 		os.Exit(1) //nolint:gocritic
 	}
 }
 
-func getStorage(config StorageConf) (storage.Storage, func() error, error) {
+func getStorage(config StorageConf, log logger.Logger) (storage.Storage, error) {
 	switch config.Type {
 	case StorageMemory:
-		return memorystorage.New(), func() error { return nil }, nil
-	case StorageSql:
+		return memorystorage.New(), nil
+	case StorageSQL:
 		db := sqlstorage.New(config.DSN)
+
+		defer func() {
+			if err := db.Close(); err != nil {
+				log.Error("failed to close storage: " + err.Error())
+			}
+		}()
+
 		if err := db.Connect(); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
-		return db, db.Close, nil
+		return db, nil
 	default:
-		return nil, nil, errors.New("unknown storage type: " + string(config.Type))
+		return nil, errors.New("unknown storage type: " + string(config.Type))
 	}
 }

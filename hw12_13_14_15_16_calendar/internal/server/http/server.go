@@ -18,7 +18,7 @@ type Server struct {
 
 type Application interface{}
 
-func NewServer(logger logger.Logger, host string, port int, app Application) *Server {
+func NewServer(logger logger.Logger, host string, port int, _ Application) *Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", helloHandler)
 
@@ -47,7 +47,7 @@ func (s *Server) Stop(ctx context.Context) error {
 	return s.server.Shutdown(ctx)
 }
 
-func helloHandler(w http.ResponseWriter, r *http.Request) {
+func helloHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("Hello World!"))

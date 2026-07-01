@@ -6,7 +6,7 @@ type StorageType string
 
 const (
 	StorageMemory StorageType = "MEMORY"
-	StorageSql    StorageType = "SQL"
+	StorageSQL    StorageType = "SQL"
 )
 
 // При желании конфигурацию можно вынести в internal/config.
