@@ -65,19 +65,19 @@ func (s *SQLStorage) Close() error {
 	return err
 }
 
-func (s *SQLStorage) CreateEvent(event storage.Event) error {
+func (s *SQLStorage) CreateEvent(event storage.Event) (storage.Event, error) {
 	if event.ID == uuid.Nil {
 		event.ID = uuid.New()
 	}
 
 	tx, err := s.beginTx()
 	if err != nil {
-		return err
+		return storage.Event{}, err
 	}
 	defer rollbackTx(tx)
 
 	if err := s.ensureDateAvailable(tx, event, uuid.Nil); err != nil {
-		return err
+		return storage.Event{}, err
 	}
 
 	_, err = tx.ExecContext(context.Background(), `
@@ -101,13 +101,16 @@ func (s *SQLStorage) CreateEvent(event storage.Event) error {
 		nullableDuration(event.NotifyBefore),
 	)
 	if isUniqueViolation(err) {
-		return storage.ErrEventAlreadyExists
+		return storage.Event{}, storage.ErrEventAlreadyExists
 	}
 	if err != nil {
-		return err
+		return storage.Event{}, err
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return storage.Event{}, err
+	}
+	return event, nil
 }
 
 func (s *SQLStorage) UpdateEvent(id uuid.UUID, event storage.Event) error {
