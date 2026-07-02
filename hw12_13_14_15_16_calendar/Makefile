@@ -20,6 +20,16 @@ RABBIT_PORT ?= 5672
 RABBIT_PORT_UI ?= 15672
 RABBIT_CONTAINER := rabbitmq
 
+LOCAL_BIN := $(CURDIR)/bin
+export PATH := $(LOCAL_BIN):$(PATH)
+
+install-generate-deps:
+	GOBIN=$(LOCAL_BIN) go install github.com/bufbuild/buf/cmd/buf@v1.54.0
+	GOBIN=$(LOCAL_BIN) go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.5
+	GOBIN=$(LOCAL_BIN) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+
+generate: install-generate-deps
+	go generate ./...
 
 run-postgres:
 	docker run -d --name $(POSTGRES_CONTAINER) \
@@ -74,4 +84,4 @@ install-lint-deps:
 lint: install-lint-deps
 	golangci-lint run ./...
 
-.PHONY: build run build-img run-img version test lint run-postgres run-rabbit migrate migrate-down migrate-status
+.PHONY: build run build-img run-img version test lint run-postgres run-rabbit migrate migrate-down migrate-status generate install-generate-deps
