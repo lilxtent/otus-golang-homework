@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/app"
 	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/logger"
 	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/server/http/models"
 	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage"
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 )
 
 type Server struct {
@@ -21,19 +21,10 @@ type Server struct {
 	server *http.Server
 }
 
-type Application interface {
-	CreateEvent(ctx context.Context, event storage.Event) (storage.Event, error)
-	UpdateEvent(ctx context.Context, id uuid.UUID, event storage.Event) error
-	DeleteEvent(ctx context.Context, id uuid.UUID) error
-	ListEventsForDay(ctx context.Context, date time.Time) ([]storage.Event, error)
-	ListEventsForWeek(ctx context.Context, startOfWeek time.Time) ([]storage.Event, error)
-	ListEventsForMonth(ctx context.Context, startOfMonth time.Time) ([]storage.Event, error)
-}
-
 var validate = validator.New()
 
-func NewServer(logger logger.Logger, host string, port int, app Application) *Server {
-	mux := newMux(app)
+func NewServer(logger logger.Logger, host string, port int, application app.Application) *Server {
+	mux := newMux(application)
 
 	return &Server{
 		logger: logger,
@@ -60,7 +51,7 @@ func (s *Server) Stop(ctx context.Context) error {
 	return s.server.Shutdown(ctx)
 }
 
-func newMux(app Application) http.Handler {
+func newMux(app app.Application) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /events", createEventHandler(app))
 	mux.HandleFunc("PUT /events/{id}", updateEventHandler(app))
@@ -72,7 +63,7 @@ func newMux(app Application) http.Handler {
 	return mux
 }
 
-func createEventHandler(app Application) http.HandlerFunc {
+func createEventHandler(app app.Application) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		request, err := decodeCreateEventRequest(r)
 		if err != nil {
@@ -96,7 +87,7 @@ func createEventHandler(app Application) http.HandlerFunc {
 	}
 }
 
-func updateEventHandler(app Application) http.HandlerFunc {
+func updateEventHandler(app app.Application) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		request, err := decodeUpdateEventRequest(r)
 		if err != nil {
@@ -121,7 +112,7 @@ func updateEventHandler(app Application) http.HandlerFunc {
 	}
 }
 
-func deleteEventHandler(app Application) http.HandlerFunc {
+func deleteEventHandler(app app.Application) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		request, err := decodeDeleteEventRequest(r)
 		if err != nil {

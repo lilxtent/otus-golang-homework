@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/app"
 	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/logger"
 	eventv1 "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/server/grpc/pb/event/v1"
 	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage"
@@ -29,18 +30,9 @@ type Server struct {
 	addr   string
 }
 
-type Application interface {
-	CreateEvent(ctx context.Context, event storage.Event) (storage.Event, error)
-	UpdateEvent(ctx context.Context, id uuid.UUID, event storage.Event) error
-	DeleteEvent(ctx context.Context, id uuid.UUID) error
-	ListEventsForDay(ctx context.Context, date time.Time) ([]storage.Event, error)
-	ListEventsForWeek(ctx context.Context, startOfWeek time.Time) ([]storage.Event, error)
-	ListEventsForMonth(ctx context.Context, startOfMonth time.Time) ([]storage.Event, error)
-}
-
-func NewServer(logger logger.Logger, host string, port int, app Application) *Server {
+func NewServer(logger logger.Logger, host string, port int, application app.Application) *Server {
 	server := grpc.NewServer(grpc.UnaryInterceptor(loggingInterceptor(logger)))
-	eventv1.RegisterEventServiceServer(server, newEventService(app))
+	eventv1.RegisterEventServiceServer(server, newEventService(application))
 	reflection.Register(server)
 
 	return &Server{
@@ -109,11 +101,11 @@ func clientAddr(ctx context.Context) string {
 
 type eventService struct {
 	eventv1.UnimplementedEventServiceServer
-	app Application
+	app app.Application
 }
 
-func newEventService(app Application) *eventService {
-	return &eventService{app: app}
+func newEventService(application app.Application) *eventService {
+	return &eventService{app: application}
 }
 
 func (s *eventService) CreateEvent(
