@@ -4,25 +4,17 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/logger"
 	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/queue"
 	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage"
 )
 
-type Consumer interface {
-	Consume(ctx context.Context, handler queue.Handler) error
-}
-
-type Logger interface {
-	Info(msg string)
-	Error(msg string)
-}
-
 type Sender struct {
-	consumer Consumer
-	logger   Logger
+	consumer queue.Consumer
+	logger   logger.Logger
 }
 
-func New(consumer Consumer, logger Logger) *Sender {
+func New(consumer queue.Consumer, logger logger.Logger) *Sender {
 	return &Sender{
 		consumer: consumer,
 		logger:   logger,

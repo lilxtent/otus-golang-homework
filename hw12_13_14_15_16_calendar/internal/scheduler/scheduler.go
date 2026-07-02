@@ -5,30 +5,15 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/logger"
 	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/queue"
 	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage"
-	"github.com/google/uuid"
 )
 
-type Storage interface {
-	ListEventsToNotify(now time.Time) ([]storage.Event, error)
-	MarkEventNotified(id uuid.UUID, notifiedAt time.Time) error
-	DeleteEventsBefore(before time.Time) error
-}
-
-type Publisher interface {
-	Publish(ctx context.Context, message queue.Message) error
-}
-
-type Logger interface {
-	Info(msg string)
-	Error(msg string)
-}
-
 type Scheduler struct {
-	storage         Storage
-	publisher       Publisher
-	logger          Logger
+	storage         storage.SchedulerStorage
+	publisher       queue.Publisher
+	logger          logger.Logger
 	scanInterval    time.Duration
 	cleanupInterval time.Duration
 	now             func() time.Time
@@ -39,7 +24,7 @@ type Config struct {
 	CleanupInterval time.Duration
 }
 
-func New(storage Storage, publisher Publisher, logger Logger, config Config) *Scheduler {
+func New(storage storage.SchedulerStorage, publisher queue.Publisher, logger logger.Logger, config Config) *Scheduler {
 	if config.ScanInterval <= 0 {
 		config.ScanInterval = time.Minute
 	}
