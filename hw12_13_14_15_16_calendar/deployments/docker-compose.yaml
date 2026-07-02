@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -17,6 +15,85 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  migrate:
+    image: golang:1.25-alpine
+    working_dir: /app
+    volumes:
+      - ..:/app
+    command:
+      - sh
+      - -c
+      - go run github.com/pressly/goose/v3/cmd/goose@latest -dir migrations postgres "postgres://postgres:password@postgres:5432/backend?sslmode=disable" up
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq-calendar
+    environment:
+      RABBITMQ_DEFAULT_USER: rabbit
+      RABBITMQ_DEFAULT_PASS: password
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  calendar:
+    build:
+      context: ..
+      dockerfile: build/Dockerfile
+      args:
+        SERVICE: calendar
+    image: calendar-api:develop
+    container_name: calendar-api
+    environment:
+      CONFIG_FILE: /etc/calendar/docker_calendar_config.yaml
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  calendar_scheduler:
+    build:
+      context: ..
+      dockerfile: build/Dockerfile
+      args:
+        SERVICE: calendar_scheduler
+    image: calendar-scheduler:develop
+    container_name: calendar-scheduler
+    environment:
+      CONFIG_FILE: /etc/calendar/docker_scheduler_config.yaml
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+
+  calendar_sender:
+    build:
+      context: ..
+      dockerfile: build/Dockerfile
+      args:
+        SERVICE: calendar_sender
+    image: calendar-sender:develop
+    container_name: calendar-sender
+    environment:
+      CONFIG_FILE: /etc/calendar/docker_sender_config.yaml
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
 volumes:
   postgres-data:
