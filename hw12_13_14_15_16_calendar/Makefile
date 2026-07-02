@@ -1,5 +1,6 @@
 BIN := "./bin/calendar"
 SCHEDULER_BIN := "./bin/calendar_scheduler"
+SENDER_BIN := "./bin/calendar_sender"
 DOCKER_IMG="calendar:develop"
 
 GIT_HASH := $(shell git log --format="%h" -n 1)
@@ -61,12 +62,16 @@ run-rabbit:
 build:
 	go build -v -o $(BIN) -ldflags "$(LDFLAGS)" ./cmd/calendar
 	go build -v -o $(SCHEDULER_BIN) -ldflags "$(LDFLAGS)" ./cmd/calendar_scheduler
+	go build -v -o $(SENDER_BIN) -ldflags "$(LDFLAGS)" ./cmd/calendar_sender
 
 run: build
 	$(BIN) -config configs/config.yaml
 
 run-scheduler: build
 	$(SCHEDULER_BIN) -config configs/scheduler_config.yaml
+
+run-sender: build
+	$(SENDER_BIN) -config configs/sender_config.yaml
 
 build-img:
 	docker build \
@@ -89,4 +94,4 @@ install-lint-deps:
 lint: install-lint-deps
 	golangci-lint run ./...
 
-.PHONY: build run run-scheduler build-img run-img version test lint run-postgres run-rabbit migrate migrate-down migrate-status generate install-generate-deps
+.PHONY: build run run-scheduler run-sender build-img run-img version test lint run-postgres run-rabbit migrate migrate-down migrate-status generate install-generate-deps

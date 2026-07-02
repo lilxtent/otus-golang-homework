@@ -1,0 +1,8 @@
+logger:
+  level: INFO
+queue:
+  url: amqp://rabbit:password@localhost:5672/
+  exchange: calendar
+  queue: calendar.notifications
+  routing_key: calendar.notification
+  consumer_tag: calendar-sender

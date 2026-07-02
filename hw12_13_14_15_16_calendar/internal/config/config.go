@@ -28,6 +28,11 @@ type Scheduler struct {
 	Scheduler SchedulerConf   `mapstructure:"scheduler"`
 }
 
+type Sender struct {
+	Logger LoggerConf      `mapstructure:"logger"`
+	Queue  rabbitmq.Config `mapstructure:"queue"`
+}
+
 type LoggerConf struct {
 	Level string `mapstructure:"level"`
 }
@@ -65,6 +70,15 @@ func NewScheduler(path string) (Scheduler, error) {
 	config := Scheduler{}
 	if err := Load(path, &config); err != nil {
 		return Scheduler{}, err
+	}
+
+	return config, nil
+}
+
+func NewSender(path string) (Sender, error) {
+	config := Sender{}
+	if err := Load(path, &config); err != nil {
+		return Sender{}, err
 	}
 
 	return config, nil

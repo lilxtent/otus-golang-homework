@@ -71,6 +71,30 @@ scheduler:
 	require.Equal(t, 2*time.Hour, config.Scheduler.CleanupInterval)
 }
 
+func TestNewSender(t *testing.T) {
+	t.Parallel()
+
+	path := writeTempConfig(t, `
+logger:
+  level: INFO
+queue:
+  url: amqp://rabbit:password@localhost:5672/
+  exchange: calendar
+  queue: calendar.notifications
+  routing_key: calendar.notification
+  consumer_tag: calendar-sender
+`)
+
+	config, err := NewSender(path)
+	require.NoError(t, err)
+	require.Equal(t, "INFO", config.Logger.Level)
+	require.Equal(t, "amqp://rabbit:password@localhost:5672/", config.Queue.URL)
+	require.Equal(t, "calendar", config.Queue.Exchange)
+	require.Equal(t, "calendar.notifications", config.Queue.Queue)
+	require.Equal(t, "calendar.notification", config.Queue.RoutingKey)
+	require.Equal(t, "calendar-sender", config.Queue.ConsumerTag)
+}
+
 func TestLoadReturnsErrorForMissingFile(t *testing.T) {
 	t.Parallel()
 
