@@ -115,7 +115,7 @@ func getStorage(config StorageConf) (storage.Storage, error) {
 	case StorageSQL:
 		db := sqlstorage.New(config.DSN)
 		if err := db.Connect(); err != nil {
-			return nil, err
+			return nil, errors.Join(err, db.Close())
 		}
 
 		return db, nil

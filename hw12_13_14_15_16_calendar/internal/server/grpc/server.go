@@ -47,6 +47,9 @@ func (s *Server) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		_ = listener.Close()
+	}()
 
 	go func() {
 		<-ctx.Done()
