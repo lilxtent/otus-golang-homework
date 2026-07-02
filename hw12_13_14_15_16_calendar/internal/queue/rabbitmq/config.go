@@ -9,11 +9,11 @@ const (
 )
 
 type Config struct {
-	URL         string
-	Exchange    string
-	Queue       string
-	RoutingKey  string
-	ConsumerTag string
+	URL         string `mapstructure:"url"`
+	Exchange    string `mapstructure:"exchange"`
+	Queue       string `mapstructure:"queue"`
+	RoutingKey  string `mapstructure:"routing_key"`
+	ConsumerTag string `mapstructure:"consumer_tag"`
 }
 
 func (c Config) withDefaults() Config {

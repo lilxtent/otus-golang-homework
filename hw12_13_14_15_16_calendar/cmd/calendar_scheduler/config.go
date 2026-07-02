@@ -2,14 +2,11 @@ package main
 
 import appconfig "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/config"
 
-const (
-	StorageMemory = appconfig.StorageMemory
-	StorageSQL    = appconfig.StorageSQL
-)
+const StorageSQL = appconfig.StorageSQL
 
-type Config = appconfig.Calendar
+type Config = appconfig.Scheduler
 type StorageConf = appconfig.StorageConf
 
 func NewConfig(path string) (Config, error) {
-	return appconfig.NewCalendar(path)
+	return appconfig.NewScheduler(path)
 }
