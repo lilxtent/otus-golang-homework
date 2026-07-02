@@ -115,6 +115,8 @@ compose-logs:
 
 version: build
 	$(BIN) version
+	$(SCHEDULER_BIN) version
+	$(SENDER_BIN) version
 
 test:
 	go test -race ./...
