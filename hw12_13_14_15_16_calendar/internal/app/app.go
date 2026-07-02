@@ -12,6 +12,15 @@ type App struct {
 	storage storage.Storage
 }
 
+type Application interface {
+	CreateEvent(ctx context.Context, event storage.Event) (storage.Event, error)
+	UpdateEvent(ctx context.Context, id uuid.UUID, event storage.Event) error
+	DeleteEvent(ctx context.Context, id uuid.UUID) error
+	ListEventsForDay(ctx context.Context, date time.Time) ([]storage.Event, error)
+	ListEventsForWeek(ctx context.Context, startOfWeek time.Time) ([]storage.Event, error)
+	ListEventsForMonth(ctx context.Context, startOfMonth time.Time) ([]storage.Event, error)
+}
+
 func New(storage storage.Storage) *App {
 	return &App{storage: storage}
 }
