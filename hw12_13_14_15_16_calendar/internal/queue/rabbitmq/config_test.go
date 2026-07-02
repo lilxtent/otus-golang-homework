@@ -6,12 +6,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testURL = "amqp://rabbit:password@localhost:5672/"
+
 func TestConfigWithDefaults(t *testing.T) {
 	t.Parallel()
 
-	config := Config{URL: "amqp://rabbit:password@localhost:5672/"}.withDefaults()
+	config := Config{URL: testURL}.withDefaults()
 
-	require.Equal(t, "amqp://rabbit:password@localhost:5672/", config.URL)
+	require.Equal(t, testURL, config.URL)
 	require.Equal(t, DefaultExchange, config.Exchange)
 	require.Equal(t, DefaultQueue, config.Queue)
 	require.Equal(t, DefaultRoutingKey, config.RoutingKey)
@@ -21,7 +23,7 @@ func TestConfigWithDefaultsKeepsExplicitValues(t *testing.T) {
 	t.Parallel()
 
 	config := Config{
-		URL:        "amqp://rabbit:password@localhost:5672/",
+		URL:        testURL,
 		Exchange:   "custom.exchange",
 		Queue:      "custom.queue",
 		RoutingKey: "custom.key",
@@ -36,7 +38,7 @@ func TestConfigValidate(t *testing.T) {
 	t.Parallel()
 
 	config := Config{
-		URL:        "amqp://rabbit:password@localhost:5672/",
+		URL:        testURL,
 		Exchange:   DefaultExchange,
 		Queue:      DefaultQueue,
 		RoutingKey: DefaultRoutingKey,
@@ -68,7 +70,7 @@ func TestConfigValidateRequiresTopologyNames(t *testing.T) {
 		{
 			name: "exchange",
 			config: Config{
-				URL:        "amqp://rabbit:password@localhost:5672/",
+				URL:        testURL,
 				Queue:      DefaultQueue,
 				RoutingKey: DefaultRoutingKey,
 			},
@@ -77,7 +79,7 @@ func TestConfigValidateRequiresTopologyNames(t *testing.T) {
 		{
 			name: "queue",
 			config: Config{
-				URL:        "amqp://rabbit:password@localhost:5672/",
+				URL:        testURL,
 				Exchange:   DefaultExchange,
 				RoutingKey: DefaultRoutingKey,
 			},
@@ -86,7 +88,7 @@ func TestConfigValidateRequiresTopologyNames(t *testing.T) {
 		{
 			name: "routing key",
 			config: Config{
-				URL:      "amqp://rabbit:password@localhost:5672/",
+				URL:      testURL,
 				Exchange: DefaultExchange,
 				Queue:    DefaultQueue,
 			},

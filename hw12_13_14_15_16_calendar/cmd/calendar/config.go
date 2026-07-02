@@ -7,8 +7,10 @@ const (
 	StorageSQL    = appconfig.StorageSQL
 )
 
-type Config = appconfig.Calendar
-type StorageConf = appconfig.StorageConf
+type (
+	Config      = appconfig.Calendar
+	StorageConf = appconfig.StorageConf
+)
 
 func NewConfig(path string) (Config, error) {
 	return appconfig.NewCalendar(path)

@@ -20,29 +20,33 @@ func init() {
 }
 
 func main() {
+	os.Exit(run())
+}
+
+func run() int {
 	flag.Parse()
 
 	if flag.Arg(0) == "version" {
 		printVersion()
-		return
+		return 0
 	}
 
 	config, err := NewConfig(configFile)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return 1
 	}
 
 	log, err := logger.New(config.Logger.Level)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return 1
 	}
 
 	broker, err := rabbitmq.New(config.Queue)
 	if err != nil {
 		log.Error("failed to initialize queue: " + err.Error())
-		os.Exit(1)
+		return 1
 	}
 	defer func() {
 		if err := broker.Close(); err != nil {
@@ -59,6 +63,8 @@ func main() {
 	log.Info("calendar sender is running...")
 	if err := service.Run(ctx); err != nil {
 		log.Error("sender stopped with error: " + err.Error())
-		os.Exit(1)
+		return 1
 	}
+
+	return 0
 }

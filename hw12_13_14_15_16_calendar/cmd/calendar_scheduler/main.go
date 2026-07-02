@@ -22,29 +22,33 @@ func init() {
 }
 
 func main() {
+	os.Exit(run())
+}
+
+func run() int {
 	flag.Parse()
 
 	if flag.Arg(0) == "version" {
 		printVersion()
-		return
+		return 0
 	}
 
 	config, err := NewConfig(configFile)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return 1
 	}
 
 	log, err := logger.New(config.Logger.Level)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return 1
 	}
 
 	strg, err := getStorage(config.Storage)
 	if err != nil {
 		log.Error("failed to initialize storage: " + err.Error())
-		os.Exit(1)
+		return 1
 	}
 	defer func() {
 		if err := strg.Close(); err != nil {
@@ -55,7 +59,7 @@ func main() {
 	broker, err := rabbitmq.New(config.Queue)
 	if err != nil {
 		log.Error("failed to initialize queue: " + err.Error())
-		os.Exit(1)
+		return 1
 	}
 	defer func() {
 		if err := broker.Close(); err != nil {
@@ -75,8 +79,10 @@ func main() {
 	log.Info("calendar scheduler is running...")
 	if err := service.Run(ctx); err != nil {
 		log.Error("scheduler stopped with error: " + err.Error())
-		os.Exit(1)
+		return 1
 	}
+
+	return 0
 }
 
 func getStorage(config StorageConf) (*sqlstorage.SQLStorage, error) {
@@ -88,6 +94,8 @@ func getStorage(config StorageConf) (*sqlstorage.SQLStorage, error) {
 		}
 
 		return db, nil
+	case StorageMemory:
+		return nil, errors.New("scheduler requires SQL storage")
 	default:
 		return nil, errors.New("unknown storage type: " + string(config.Type))
 	}
