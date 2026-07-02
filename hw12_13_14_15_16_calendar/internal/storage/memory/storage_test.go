@@ -150,6 +150,96 @@ func TestStorageListsEventsForWeekAndMonth(t *testing.T) {
 	}
 }
 
+func TestStorageListsEventsToNotify(t *testing.T) {
+	t.Parallel()
+
+	db := New()
+	now := time.Date(2026, 7, 2, 12, 0, 0, 0, time.UTC)
+	notifyBefore := time.Hour
+	notifiedAt := now.Add(-time.Minute)
+
+	due := newEvent(uuid.New(), now.Add(30*time.Minute))
+	due.NotifyBefore = &notifyBefore
+
+	future := newEvent(uuid.New(), now.Add(2*time.Hour))
+	future.NotifyBefore = &notifyBefore
+
+	withoutNotification := newEvent(uuid.New(), now.Add(30*time.Minute))
+
+	past := newEvent(uuid.New(), now.Add(-time.Minute))
+	past.NotifyBefore = &notifyBefore
+
+	alreadyNotified := newEvent(uuid.New(), now.Add(30*time.Minute))
+	alreadyNotified.NotifyBefore = &notifyBefore
+	alreadyNotified.NotifiedAt = &notifiedAt
+
+	for _, event := range []storage.Event{due, future, withoutNotification, past, alreadyNotified} {
+		_, err := db.CreateEvent(event)
+		require.NoError(t, err)
+	}
+
+	events, err := db.ListEventsToNotify(now)
+	require.NoError(t, err)
+	require.Len(t, events, 1)
+	require.Equal(t, due.ID, events[0].ID)
+}
+
+func TestStorageMarkEventNotified(t *testing.T) {
+	t.Parallel()
+
+	db := New()
+	now := time.Date(2026, 7, 2, 12, 0, 0, 0, time.UTC)
+	notifyBefore := time.Hour
+	event := newEvent(uuid.New(), now.Add(30*time.Minute))
+	event.NotifyBefore = &notifyBefore
+
+	_, err := db.CreateEvent(event)
+	require.NoError(t, err)
+
+	err = db.MarkEventNotified(event.ID, now)
+	require.NoError(t, err)
+
+	events, err := db.ListEventsToNotify(now)
+	require.NoError(t, err)
+	require.Empty(t, events)
+
+	events, err = db.ListEventsForDay(event.Date)
+	require.NoError(t, err)
+	require.Len(t, events, 1)
+	require.NotNil(t, events[0].NotifiedAt)
+	require.Equal(t, now, *events[0].NotifiedAt)
+}
+
+func TestStorageDeleteEventsBefore(t *testing.T) {
+	t.Parallel()
+
+	db := New()
+	userID := uuid.New()
+	oldEvent := newEvent(userID, time.Date(2025, 7, 1, 10, 0, 0, 0, time.UTC))
+	borderEvent := newEvent(userID, time.Date(2025, 7, 2, 10, 0, 0, 0, time.UTC))
+	freshEvent := newEvent(userID, time.Date(2026, 7, 2, 10, 0, 0, 0, time.UTC))
+
+	for _, event := range []storage.Event{oldEvent, borderEvent, freshEvent} {
+		_, err := db.CreateEvent(event)
+		require.NoError(t, err)
+	}
+
+	err := db.DeleteEventsBefore(borderEvent.Date)
+	require.NoError(t, err)
+
+	oldEvents, err := db.ListEventsForDay(oldEvent.Date)
+	require.NoError(t, err)
+	require.Empty(t, oldEvents)
+
+	borderEvents, err := db.ListEventsForDay(borderEvent.Date)
+	require.NoError(t, err)
+	require.Len(t, borderEvents, 1)
+
+	freshEvents, err := db.ListEventsForDay(freshEvent.Date)
+	require.NoError(t, err)
+	require.Len(t, freshEvents, 1)
+}
+
 func newEvent(userID uuid.UUID, date time.Time) storage.Event {
 	return storage.Event{
 		ID:       uuid.New(),

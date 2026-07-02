@@ -88,9 +88,10 @@ func (s *SQLStorage) CreateEvent(event storage.Event) (storage.Event, error) {
 			duration,
 			description,
 			user_id,
-			notify_before
+			notify_before,
+			notified_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`,
 		event.ID,
 		event.Title,
@@ -99,6 +100,7 @@ func (s *SQLStorage) CreateEvent(event storage.Event) (storage.Event, error) {
 		nullableString(event.Description),
 		event.UserID,
 		nullableDuration(event.NotifyBefore),
+		nullableTime(event.NotifiedAt),
 	)
 	if isUniqueViolation(err) {
 		return storage.Event{}, storage.ErrEventAlreadyExists
@@ -137,7 +139,8 @@ func (s *SQLStorage) UpdateEvent(id uuid.UUID, event storage.Event) error {
 			duration = $4,
 			description = $5,
 			user_id = $6,
-			notify_before = $7
+			notify_before = $7,
+			notified_at = $8
 		WHERE id = $1
 	`,
 		id,
@@ -147,6 +150,7 @@ func (s *SQLStorage) UpdateEvent(id uuid.UUID, event storage.Event) error {
 		nullableString(event.Description),
 		event.UserID,
 		nullableDuration(event.NotifyBefore),
+		nullableTime(event.NotifiedAt),
 	)
 	if err != nil {
 		return err
@@ -200,6 +204,89 @@ func (s *SQLStorage) ListEventsForMonth(startOfMonth time.Time) ([]storage.Event
 	return s.listEventsBetween(start, start.AddDate(0, 1, 0))
 }
 
+func (s *SQLStorage) ListEventsToNotify(now time.Time) ([]storage.Event, error) {
+	db, err := s.connection()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := db.QueryContext(context.Background(), `
+		SELECT
+			id,
+			title,
+			date,
+			duration,
+			description,
+			user_id,
+			notify_before,
+			notified_at
+		FROM events
+		WHERE
+			notify_before IS NOT NULL
+			AND notified_at IS NULL
+			AND date > $1
+			AND date - make_interval(secs => notify_before::double precision / 1000000000) <= $1
+		ORDER BY date, id
+	`, now)
+	if err != nil {
+		return nil, err
+	}
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
+
+	events := make([]storage.Event, 0)
+	for rows.Next() {
+		event, err := scanEvent(rows)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, event)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return events, nil
+}
+
+func (s *SQLStorage) MarkEventNotified(id uuid.UUID, notifiedAt time.Time) error {
+	db, err := s.connection()
+	if err != nil {
+		return err
+	}
+
+	result, err := db.ExecContext(
+		context.Background(),
+		`UPDATE events SET notified_at = $2 WHERE id = $1`,
+		id,
+		notifiedAt,
+	)
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return storage.ErrEventNotFound
+	}
+
+	return nil
+}
+
+func (s *SQLStorage) DeleteEventsBefore(before time.Time) error {
+	db, err := s.connection()
+	if err != nil {
+		return err
+	}
+
+	_, err = db.ExecContext(context.Background(), `DELETE FROM events WHERE date < $1`, before)
+	return err
+}
+
 func (s *SQLStorage) listEventsBetween(start, end time.Time) ([]storage.Event, error) {
 	db, err := s.connection()
 	if err != nil {
@@ -214,7 +301,8 @@ func (s *SQLStorage) listEventsBetween(start, end time.Time) ([]storage.Event, e
 			duration,
 			description,
 			user_id,
-			notify_before
+			notify_before,
+			notified_at
 		FROM events
 		WHERE date >= $1 AND date < $2
 		ORDER BY date, id
@@ -313,6 +401,7 @@ func scanEvent(scanner interface {
 		durationRaw     int64
 		descriptionRaw  sql.NullString
 		notifyBeforeRaw sql.NullInt64
+		notifiedAtRaw   sql.NullTime
 		event           storage.Event
 	)
 
@@ -324,6 +413,7 @@ func scanEvent(scanner interface {
 		&descriptionRaw,
 		&userIDRaw,
 		&notifyBeforeRaw,
+		&notifiedAtRaw,
 	); err != nil {
 		return storage.Event{}, err
 	}
@@ -347,6 +437,9 @@ func scanEvent(scanner interface {
 		notifyBefore := time.Duration(notifyBeforeRaw.Int64)
 		event.NotifyBefore = &notifyBefore
 	}
+	if notifiedAtRaw.Valid {
+		event.NotifiedAt = &notifiedAtRaw.Time
+	}
 
 	return event, nil
 }
@@ -365,6 +458,14 @@ func nullableDuration(value *time.Duration) sql.NullInt64 {
 	}
 
 	return sql.NullInt64{Int64: value.Nanoseconds(), Valid: true}
+}
+
+func nullableTime(value *time.Time) sql.NullTime {
+	if value == nil {
+		return sql.NullTime{}
+	}
+
+	return sql.NullTime{Time: *value, Valid: true}
 }
 
 func dayStart(date time.Time) time.Time {

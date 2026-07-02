@@ -13,4 +13,7 @@ type Storage interface {
 	ListEventsForDay(date time.Time) ([]Event, error)
 	ListEventsForWeek(startOfWeek time.Time) ([]Event, error)
 	ListEventsForMonth(startOfMonth time.Time) ([]Event, error)
+	ListEventsToNotify(now time.Time) ([]Event, error)
+	MarkEventNotified(id uuid.UUID, notifiedAt time.Time) error
+	DeleteEventsBefore(before time.Time) error
 }
