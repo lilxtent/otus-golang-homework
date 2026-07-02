@@ -52,7 +52,7 @@ func New() *MemoryStorage {
 	return &MemoryStorage{db: db}
 }
 
-func (s *MemoryStorage) CreateEvent(event storage.Event) error {
+func (s *MemoryStorage) CreateEvent(event storage.Event) (storage.Event, error) {
 	if event.ID == uuid.Nil {
 		event.ID = uuid.New()
 	}
@@ -62,22 +62,22 @@ func (s *MemoryStorage) CreateEvent(event storage.Event) error {
 
 	found, err := txn.First(eventsTable, idIndex, event.ID.String())
 	if err != nil {
-		return err
+		return storage.Event{}, err
 	}
 	if found != nil {
-		return storage.ErrEventAlreadyExists
+		return storage.Event{}, storage.ErrEventAlreadyExists
 	}
 
 	if err := ensureDateAvailable(txn, event, uuid.Nil); err != nil {
-		return err
+		return storage.Event{}, err
 	}
 
 	if err := txn.Insert(eventsTable, newEventRecord(event)); err != nil {
-		return err
+		return storage.Event{}, err
 	}
 
 	txn.Commit()
-	return nil
+	return cloneEvent(event), nil
 }
 
 func (s *MemoryStorage) UpdateEvent(id uuid.UUID, event storage.Event) error {

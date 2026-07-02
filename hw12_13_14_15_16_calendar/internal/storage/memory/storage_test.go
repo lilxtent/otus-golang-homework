@@ -7,6 +7,7 @@ import (
 
 	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStorageCreateAndListEvents(t *testing.T) {
@@ -16,20 +17,26 @@ func TestStorageCreateAndListEvents(t *testing.T) {
 	userID := uuid.New()
 	event := newEvent(userID, time.Date(2026, 6, 29, 10, 0, 0, 0, time.UTC))
 
-	if err := db.CreateEvent(event); err != nil {
-		t.Fatalf("create event: %v", err)
-	}
+	created, err := db.CreateEvent(event)
+	require.NoError(t, err)
+	require.Equal(t, event.ID, created.ID)
 
 	events, err := db.ListEventsForDay(time.Date(2026, 6, 29, 23, 0, 0, 0, time.UTC))
-	if err != nil {
-		t.Fatalf("list day events: %v", err)
-	}
-	if len(events) != 1 {
-		t.Fatalf("expected 1 event, got %d", len(events))
-	}
-	if events[0].ID != event.ID {
-		t.Fatalf("expected event id %s, got %s", event.ID, events[0].ID)
-	}
+	require.NoError(t, err)
+	require.Len(t, events, 1)
+	require.Equal(t, event.ID, events[0].ID)
+}
+
+func TestStorageCreateEventGeneratesID(t *testing.T) {
+	t.Parallel()
+
+	db := New()
+	event := newEvent(uuid.New(), time.Date(2026, 6, 29, 10, 0, 0, 0, time.UTC))
+	event.ID = uuid.Nil
+
+	created, err := db.CreateEvent(event)
+	require.NoError(t, err)
+	require.NotEqual(t, uuid.Nil, created.ID)
 }
 
 func TestStorageUpdateEvent(t *testing.T) {
@@ -39,9 +46,8 @@ func TestStorageUpdateEvent(t *testing.T) {
 	userID := uuid.New()
 	event := newEvent(userID, time.Date(2026, 6, 29, 10, 0, 0, 0, time.UTC))
 
-	if err := db.CreateEvent(event); err != nil {
-		t.Fatalf("create event: %v", err)
-	}
+	_, err := db.CreateEvent(event)
+	require.NoError(t, err)
 
 	updated := event
 	updated.Title = "updated"
@@ -77,9 +83,8 @@ func TestStorageDeleteEvent(t *testing.T) {
 	db := New()
 	event := newEvent(uuid.New(), time.Date(2026, 6, 29, 10, 0, 0, 0, time.UTC))
 
-	if err := db.CreateEvent(event); err != nil {
-		t.Fatalf("create event: %v", err)
-	}
+	_, err := db.CreateEvent(event)
+	require.NoError(t, err)
 	if err := db.DeleteEvent(event.ID); err != nil {
 		t.Fatalf("delete event: %v", err)
 	}
@@ -105,12 +110,10 @@ func TestStorageDateBusy(t *testing.T) {
 	event := newEvent(userID, time.Date(2026, 6, 29, 10, 0, 0, 0, time.UTC))
 	overlapping := newEvent(userID, time.Date(2026, 6, 29, 10, 30, 0, 0, time.UTC))
 
-	if err := db.CreateEvent(event); err != nil {
-		t.Fatalf("create event: %v", err)
-	}
-	if err := db.CreateEvent(overlapping); !errors.Is(err, storage.ErrDateBusy) {
-		t.Fatalf("expected ErrDateBusy, got %v", err)
-	}
+	_, err := db.CreateEvent(event)
+	require.NoError(t, err)
+	_, err = db.CreateEvent(overlapping)
+	require.ErrorIs(t, err, storage.ErrDateBusy)
 }
 
 func TestStorageListsEventsForWeekAndMonth(t *testing.T) {
@@ -123,9 +126,8 @@ func TestStorageListsEventsForWeekAndMonth(t *testing.T) {
 	nextWeekEvent := newEvent(userID, time.Date(2026, 7, 6, 10, 0, 0, 0, time.UTC))
 
 	for _, event := range []storage.Event{juneEvent, julyEvent, nextWeekEvent} {
-		if err := db.CreateEvent(event); err != nil {
-			t.Fatalf("create event %s: %v", event.ID, err)
-		}
+		_, err := db.CreateEvent(event)
+		require.NoError(t, err)
 	}
 
 	weekEvents, err := db.ListEventsForWeek(time.Date(2026, 6, 29, 0, 0, 0, 0, time.UTC))

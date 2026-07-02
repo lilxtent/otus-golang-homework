@@ -44,13 +44,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	strg, err := getStorage(config.Storage, log)
+	strg, err := getStorage(config.Storage)
 	if err != nil {
 		log.Error("failed to initialize storage: " + err.Error())
 		os.Exit(1)
 	}
+	defer func() {
+		closer, ok := strg.(interface {
+			Close() error
+		})
+		if !ok {
+			return
+		}
+		if err := closer.Close(); err != nil {
+			log.Error("failed to close storage: " + err.Error())
+		}
+	}()
 
-	calendar := app.New(log, strg)
+	calendar := app.New(strg)
 
 	server := internalhttp.NewServer(log, config.HTTP.Host, config.HTTP.Port, calendar)
 
@@ -78,19 +89,12 @@ func main() {
 	}
 }
 
-func getStorage(config StorageConf, log logger.Logger) (storage.Storage, error) {
+func getStorage(config StorageConf) (storage.Storage, error) {
 	switch config.Type {
 	case StorageMemory:
 		return memorystorage.New(), nil
 	case StorageSQL:
 		db := sqlstorage.New(config.DSN)
-
-		defer func() {
-			if err := db.Close(); err != nil {
-				log.Error("failed to close storage: " + err.Error())
-			}
-		}()
-
 		if err := db.Connect(); err != nil {
 			return nil, err
 		}
