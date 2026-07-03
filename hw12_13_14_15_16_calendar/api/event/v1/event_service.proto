@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package calendar.event.v1;
+
+option go_package = "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/server/grpc/pb/event/v1;eventv1";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+service EventService {
+  rpc CreateEvent(CreateEventRequest) returns (EventResponse);
+  rpc UpdateEvent(UpdateEventRequest) returns (EventResponse);
+  rpc DeleteEvent(DeleteEventRequest) returns (google.protobuf.Empty);
+  rpc ListEventsForDay(ListEventsRequest) returns (ListEventsResponse);
+  rpc ListEventsForWeek(ListEventsRequest) returns (ListEventsResponse);
+  rpc ListEventsForMonth(ListEventsRequest) returns (ListEventsResponse);
+}
+
+message Event {
+  string id = 1;
+  string title = 2;
+  google.protobuf.Timestamp date = 3;
+  google.protobuf.Duration duration = 4;
+  google.protobuf.StringValue description = 5;
+  string user_id = 6;
+  google.protobuf.Duration notify_before = 7;
+}
+
+message CreateEventRequest {
+  Event event = 1;
+}
+
+message UpdateEventRequest {
+  string id = 1;
+  Event event = 2;
+}
+
+message DeleteEventRequest {
+  string id = 1;
+}
+
+message ListEventsRequest {
+  google.protobuf.Timestamp date = 1;
+}
+
+message EventResponse {
+  Event event = 1;
+}
+
+message ListEventsResponse {
+  repeated Event events = 1;
+}

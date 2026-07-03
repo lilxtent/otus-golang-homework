@@ -7,7 +7,7 @@ import (
 )
 
 type Storage interface {
-	CreateEvent(event Event) error
+	CreateEvent(event Event) (Event, error)
 	UpdateEvent(id uuid.UUID, event Event) error
 	DeleteEvent(id uuid.UUID) error
 	ListEventsForDay(date time.Time) ([]Event, error)
