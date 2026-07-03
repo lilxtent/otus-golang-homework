@@ -2,30 +2,53 @@ package internalhttp
 
 import (
 	"context"
+	"errors"
+	"net"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/logger"
 )
 
-type Server struct { // TODO
+type Server struct {
+	logger logger.Logger
+	server *http.Server
 }
 
-type Logger interface { // TODO
-}
+type Application interface{}
 
-type Application interface { // TODO
-}
+func NewServer(logger logger.Logger, host string, port int, _ Application) *Server {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", helloHandler)
 
-func NewServer(logger Logger, app Application) *Server {
-	return &Server{}
+	return &Server{
+		logger: logger,
+		server: &http.Server{
+			Addr:              net.JoinHostPort(host, strconv.Itoa(port)),
+			Handler:           loggingMiddleware(logger, mux),
+			ReadHeaderTimeout: time.Second * 5,
+		},
+	}
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	// TODO
-	<-ctx.Done()
+	_ = ctx
+
+	s.logger.Info("http server is listening on " + s.server.Addr)
+	if err := s.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
 	return nil
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	// TODO
-	return nil
+	s.logger.Info("stopping http server")
+	return s.server.Shutdown(ctx)
 }
 
-// TODO
+func helloHandler(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("Hello World!"))
+}

@@ -12,4 +12,5 @@ use (
 	./hw09_struct_validator
 	./hw10_program_optimization
 	./hw11_telnet_client
+	./hw12_13_14_15_16_calendar
 )

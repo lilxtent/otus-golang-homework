@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,13 +13,15 @@ import (
 	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/app"
 	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/logger"
 	internalhttp "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/server/http"
+	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage"
 	memorystorage "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage/memory"
+	sqlstorage "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage/sql"
 )
 
 var configFile string
 
 func init() {
-	flag.StringVar(&configFile, "config", "/etc/calendar/config.toml", "Path to configuration file")
+	flag.StringVar(&configFile, "config", "configs/config.yaml", "Path to configuration file")
 }
 
 func main() {
@@ -28,13 +32,27 @@ func main() {
 		return
 	}
 
-	config := NewConfig()
-	logg := logger.New(config.Logger.Level)
+	config, err := NewConfig(configFile)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
-	storage := memorystorage.New()
-	calendar := app.New(logg, storage)
+	log, err := logger.New(config.Logger.Level)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
-	server := internalhttp.NewServer(logg, calendar)
+	strg, err := getStorage(config.Storage, log)
+	if err != nil {
+		log.Error("failed to initialize storage: " + err.Error())
+		os.Exit(1)
+	}
+
+	calendar := app.New(log, strg)
+
+	server := internalhttp.NewServer(log, config.HTTP.Host, config.HTTP.Port, calendar)
 
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
@@ -47,15 +65,38 @@ func main() {
 		defer cancel()
 
 		if err := server.Stop(ctx); err != nil {
-			logg.Error("failed to stop http server: " + err.Error())
+			log.Error("failed to stop http server: " + err.Error())
 		}
 	}()
 
-	logg.Info("calendar is running...")
+	log.Info("calendar is running...")
 
 	if err := server.Start(ctx); err != nil {
-		logg.Error("failed to start http server: " + err.Error())
+		log.Error("failed to start http server: " + err.Error())
 		cancel()
 		os.Exit(1) //nolint:gocritic
+	}
+}
+
+func getStorage(config StorageConf, log logger.Logger) (storage.Storage, error) {
+	switch config.Type {
+	case StorageMemory:
+		return memorystorage.New(), nil
+	case StorageSQL:
+		db := sqlstorage.New(config.DSN)
+
+		defer func() {
+			if err := db.Close(); err != nil {
+				log.Error("failed to close storage: " + err.Error())
+			}
+		}()
+
+		if err := db.Connect(); err != nil {
+			return nil, err
+		}
+
+		return db, nil
+	default:
+		return nil, errors.New("unknown storage type: " + string(config.Type))
 	}
 }
