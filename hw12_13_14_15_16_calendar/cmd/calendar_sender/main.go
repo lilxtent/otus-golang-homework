@@ -54,11 +54,22 @@ func run() int {
 		}
 	}()
 
+	statusPublisher, err := rabbitmq.New(config.StatusQueue)
+	if err != nil {
+		log.Error("failed to initialize status queue: " + err.Error())
+		return 1
+	}
+	defer func() {
+		if err := statusPublisher.Close(); err != nil {
+			log.Error("failed to close status queue: " + err.Error())
+		}
+	}()
+
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
-	service := sender.New(broker, log)
+	service := sender.New(broker, statusPublisher, log)
 
 	log.Info("calendar sender is running...")
 	if err := service.Run(ctx); err != nil {

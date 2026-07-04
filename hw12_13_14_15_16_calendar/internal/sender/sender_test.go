@@ -24,8 +24,9 @@ func TestRunConsumesAndLogsNotification(t *testing.T) {
 	require.NoError(t, err)
 
 	consumer := &fakeConsumer{message: message}
+	publisher := &fakePublisher{}
 	logger := &fakeLogger{}
-	service := New(consumer, logger)
+	service := New(consumer, publisher, logger)
 
 	err = service.Run(context.Background())
 	require.NoError(t, err)
@@ -33,13 +34,20 @@ func TestRunConsumesAndLogsNotification(t *testing.T) {
 	require.Contains(t, logger.info[0], notification.EventID)
 	require.Contains(t, logger.info[0], notification.Title)
 	require.Contains(t, logger.info[0], notification.UserToSend.String())
+	require.Len(t, publisher.messages, 1)
+
+	var status storage.NotificationStatus
+	require.NoError(t, queue.UnmarshalJSON(publisher.messages[0], &status))
+	require.Equal(t, notification.EventID, status.EventID)
+	require.Equal(t, "sent", status.Status)
+	require.False(t, status.SentAt.IsZero())
 }
 
 func TestRunReturnsErrorForInvalidNotification(t *testing.T) {
 	t.Parallel()
 
 	consumer := &fakeConsumer{message: queue.Message{Body: []byte("{")}}
-	service := New(consumer, &fakeLogger{})
+	service := New(consumer, &fakePublisher{}, &fakeLogger{})
 
 	err := service.Run(context.Background())
 	require.ErrorContains(t, err, "unmarshal notification")
@@ -59,6 +67,20 @@ func (c *fakeConsumer) Consume(ctx context.Context, handler queue.Handler) error
 		return err
 	}
 
+	return nil
+}
+
+type fakePublisher struct {
+	messages []queue.Message
+	err      error
+}
+
+func (p *fakePublisher) Publish(_ context.Context, message queue.Message) error {
+	if p.err != nil {
+		return p.err
+	}
+
+	p.messages = append(p.messages, message)
 	return nil
 }
 
