@@ -52,7 +52,7 @@ func New() *MemoryStorage {
 	return &MemoryStorage{db: db}
 }
 
-func (s *MemoryStorage) CreateEvent(event storage.Event) error {
+func (s *MemoryStorage) CreateEvent(event storage.Event) (storage.Event, error) {
 	if event.ID == uuid.Nil {
 		event.ID = uuid.New()
 	}
@@ -62,22 +62,22 @@ func (s *MemoryStorage) CreateEvent(event storage.Event) error {
 
 	found, err := txn.First(eventsTable, idIndex, event.ID.String())
 	if err != nil {
-		return err
+		return storage.Event{}, err
 	}
 	if found != nil {
-		return storage.ErrEventAlreadyExists
+		return storage.Event{}, storage.ErrEventAlreadyExists
 	}
 
 	if err := ensureDateAvailable(txn, event, uuid.Nil); err != nil {
-		return err
+		return storage.Event{}, err
 	}
 
 	if err := txn.Insert(eventsTable, newEventRecord(event)); err != nil {
-		return err
+		return storage.Event{}, err
 	}
 
 	txn.Commit()
-	return nil
+	return cloneEvent(event), nil
 }
 
 func (s *MemoryStorage) UpdateEvent(id uuid.UUID, event storage.Event) error {
@@ -141,6 +141,86 @@ func (s *MemoryStorage) ListEventsForWeek(startOfWeek time.Time) ([]storage.Even
 func (s *MemoryStorage) ListEventsForMonth(startOfMonth time.Time) ([]storage.Event, error) {
 	start := dayStart(startOfMonth)
 	return s.listEventsBetween(start, start.AddDate(0, 1, 0))
+}
+
+func (s *MemoryStorage) ListEventsToNotify(now time.Time) ([]storage.Event, error) {
+	txn := s.db.Txn(false)
+	defer txn.Abort()
+
+	it, err := txn.LowerBound(eventsTable, dateIndex, "")
+	if err != nil {
+		return nil, err
+	}
+
+	events := make([]storage.Event, 0)
+	for raw := it.Next(); raw != nil; raw = it.Next() {
+		record := raw.(*eventRecord)
+		event := record.Event
+		if event.NotifyBefore == nil || event.NotifiedAt != nil || !event.Date.After(now) {
+			continue
+		}
+		if event.Date.Add(-*event.NotifyBefore).After(now) {
+			continue
+		}
+		events = append(events, cloneEvent(event))
+	}
+
+	return events, nil
+}
+
+func (s *MemoryStorage) MarkEventNotified(id uuid.UUID, notifiedAt time.Time) error {
+	txn := s.db.Txn(true)
+	defer txn.Abort()
+
+	existing, err := txn.First(eventsTable, idIndex, id.String())
+	if err != nil {
+		return err
+	}
+	if existing == nil {
+		return storage.ErrEventNotFound
+	}
+
+	record := existing.(*eventRecord)
+	event := cloneEvent(record.Event)
+	event.NotifiedAt = &notifiedAt
+
+	if err := txn.Delete(eventsTable, existing); err != nil {
+		return err
+	}
+	if err := txn.Insert(eventsTable, newEventRecord(event)); err != nil {
+		return err
+	}
+
+	txn.Commit()
+	return nil
+}
+
+func (s *MemoryStorage) DeleteEventsBefore(before time.Time) error {
+	txn := s.db.Txn(true)
+	defer txn.Abort()
+
+	it, err := txn.LowerBound(eventsTable, dateIndex, "")
+	if err != nil {
+		return err
+	}
+
+	records := make([]*eventRecord, 0)
+	for raw := it.Next(); raw != nil; raw = it.Next() {
+		record := raw.(*eventRecord)
+		if !record.Event.Date.Before(before) {
+			break
+		}
+		records = append(records, record)
+	}
+
+	for _, record := range records {
+		if err := txn.Delete(eventsTable, record); err != nil {
+			return err
+		}
+	}
+
+	txn.Commit()
+	return nil
 }
 
 func (s *MemoryStorage) listEventsBetween(start, end time.Time) ([]storage.Event, error) {
@@ -228,6 +308,10 @@ func cloneEvent(event storage.Event) storage.Event {
 	if event.NotifyBefore != nil {
 		notifyBefore := *event.NotifyBefore
 		event.NotifyBefore = &notifyBefore
+	}
+	if event.NotifiedAt != nil {
+		notifiedAt := *event.NotifiedAt
+		event.NotifiedAt = &notifiedAt
 	}
 
 	return event

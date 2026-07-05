@@ -1,0 +1,14 @@
+logger:
+  level: INFO
+storage:
+  type: SQL
+  dsn: postgres://postgres:password@postgres:5432/backend?sslmode=disable
+queue:
+  url: amqp://rabbit:password@rabbitmq:5672/
+  exchange: calendar
+  queue: calendar.notifications
+  routing_key: calendar.notification
+  consumer_tag: calendar-scheduler
+scheduler:
+  scan_interval: 1m
+  cleanup_interval: 1h

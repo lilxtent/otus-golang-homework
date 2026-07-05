@@ -14,6 +14,7 @@ type Event struct {
 	Description  *string
 	UserID       uuid.UUID
 	NotifyBefore *time.Duration
+	NotifiedAt   *time.Time
 }
 
 type Notification struct {

@@ -8,10 +8,10 @@ const (
 )
 
 type (
-	Config      = appconfig.Calendar
+	Config      = appconfig.Scheduler
 	StorageConf = appconfig.StorageConf
 )
 
 func NewConfig(path string) (Config, error) {
-	return appconfig.NewCalendar(path)
+	return appconfig.NewScheduler(path)
 }

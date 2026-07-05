@@ -1,36 +1,35 @@
-# Собираем в гошке
-FROM golang:1.22 as build
+FROM golang:1.26-alpine AS build
 
-ENV BIN_FILE /opt/calendar/calendar-app
-ENV CODE_DIR /go/src/
+ARG SERVICE=calendar
+ARG LDFLAGS
 
-WORKDIR ${CODE_DIR}
+WORKDIR /src
 
-# Кэшируем слои с модулями
-COPY go.mod .
-COPY go.sum .
+COPY go.mod go.sum ./
 RUN go mod download
 
-COPY . ${CODE_DIR}
+COPY . .
 
-# Собираем статический бинарник Go (без зависимостей на Си API),
-# иначе он не будет работать в alpine образе.
-ARG LDFLAGS
 RUN CGO_ENABLED=0 go build \
         -ldflags "$LDFLAGS" \
-        -o ${BIN_FILE} cmd/calendar/*
+        -o /opt/calendar/${SERVICE} ./cmd/${SERVICE}
 
-# На выходе тонкий образ
-FROM alpine:3.9
+FROM alpine:3.22
+
+ARG SERVICE=calendar
 
 LABEL ORGANIZATION="OTUS Online Education"
 LABEL SERVICE="calendar"
 LABEL MAINTAINERS="student@otus.ru"
 
-ENV BIN_FILE "/opt/calendar/calendar-app"
-COPY --from=build ${BIN_FILE} ${BIN_FILE}
+RUN addgroup -S calendar && adduser -S calendar -G calendar
 
-ENV CONFIG_FILE /etc/calendar/config.toml
-COPY ./configs/config.toml ${CONFIG_FILE}
+COPY --from=build /opt/calendar/${SERVICE} /opt/calendar/${SERVICE}
+COPY ./configs /etc/calendar
 
-CMD ${BIN_FILE} -config ${CONFIG_FILE}
+USER calendar
+
+ENV SERVICE=${SERVICE}
+ENV CONFIG_FILE=/etc/calendar/config.yaml
+
+ENTRYPOINT ["/bin/sh", "-c", "/opt/calendar/${SERVICE} --config=${CONFIG_FILE}"]
