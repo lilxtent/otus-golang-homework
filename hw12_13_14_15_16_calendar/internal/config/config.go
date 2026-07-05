@@ -29,8 +29,9 @@ type Scheduler struct {
 }
 
 type Sender struct {
-	Logger LoggerConf      `mapstructure:"logger"`
-	Queue  rabbitmq.Config `mapstructure:"queue"`
+	Logger      LoggerConf      `mapstructure:"logger"`
+	Queue       rabbitmq.Config `mapstructure:"queue"`
+	StatusQueue rabbitmq.Config `mapstructure:"status_queue"`
 }
 
 type LoggerConf struct {

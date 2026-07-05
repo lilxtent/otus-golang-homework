@@ -23,3 +23,9 @@ type Notification struct {
 	Date       time.Time
 	UserToSend uuid.UUID
 }
+
+type NotificationStatus struct {
+	EventID string    `json:"eventId"`
+	Status  string    `json:"status"`
+	SentAt  time.Time `json:"sentAt"`
+}

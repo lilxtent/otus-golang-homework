@@ -83,6 +83,11 @@ queue:
   queue: calendar.notifications
   routing_key: calendar.notification
   consumer_tag: calendar-sender
+status_queue:
+  url: amqp://rabbit:password@localhost:5672/
+  exchange: calendar
+  queue: calendar.notification_statuses
+  routing_key: calendar.notification.status
 `)
 
 	config, err := NewSender(path)
@@ -93,6 +98,10 @@ queue:
 	require.Equal(t, "calendar.notifications", config.Queue.Queue)
 	require.Equal(t, "calendar.notification", config.Queue.RoutingKey)
 	require.Equal(t, "calendar-sender", config.Queue.ConsumerTag)
+	require.Equal(t, "amqp://rabbit:password@localhost:5672/", config.StatusQueue.URL)
+	require.Equal(t, "calendar", config.StatusQueue.Exchange)
+	require.Equal(t, "calendar.notification_statuses", config.StatusQueue.Queue)
+	require.Equal(t, "calendar.notification.status", config.StatusQueue.RoutingKey)
 }
 
 func TestLoadReturnsErrorForMissingFile(t *testing.T) {

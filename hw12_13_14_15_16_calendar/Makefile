@@ -5,6 +5,7 @@ DOCKER_API_IMG := calendar-api:develop
 DOCKER_SCHEDULER_IMG := calendar-scheduler:develop
 DOCKER_SENDER_IMG := calendar-sender:develop
 COMPOSE_FILE := deployments/docker-compose.yaml
+INTEGRATION_COMPOSE_FILE := deployments/docker-compose.integration.yaml
 
 GIT_HASH := $(shell git log --format="%h" -n 1)
 LDFLAGS := -X main.release="develop" -X main.buildDate=$(shell date -u +%Y-%m-%dT%H:%M:%S) -X main.gitHash=$(GIT_HASH)
@@ -100,9 +101,13 @@ build-img-sender:
 build-img: build-img-api build-img-scheduler build-img-sender
 
 run-img: build-img-api
-	docker run --rm -p 8080:8080 -p 50051:50051 \
+	docker run --rm -p 8888:8080 -p 50051:50051 \
 		-e CONFIG_FILE=/etc/calendar/docker_calendar_config.yaml \
 		$(DOCKER_API_IMG)
+
+up: compose-up
+
+down: compose-down
 
 compose-up:
 	docker compose -f $(COMPOSE_FILE) up --build
@@ -112,6 +117,12 @@ compose-down:
 
 compose-logs:
 	docker compose -f $(COMPOSE_FILE) logs -f
+
+integration-tests:
+	docker compose -f $(COMPOSE_FILE) -f $(INTEGRATION_COMPOSE_FILE) up --build --abort-on-container-exit --exit-code-from integration-tests integration-tests; \
+	status=$$?; \
+	docker compose -f $(COMPOSE_FILE) -f $(INTEGRATION_COMPOSE_FILE) down -v; \
+	exit $$status
 
 version: build
 	$(BIN) version
@@ -127,4 +138,4 @@ install-lint-deps:
 lint: install-lint-deps
 	golangci-lint run ./...
 
-.PHONY: build run run-scheduler run-sender build-img-api build-img-scheduler build-img-sender build-img run-img compose-up compose-down compose-logs version test lint run-postgres run-rabbit migrate migrate-down migrate-status generate install-generate-deps
+.PHONY: build run run-scheduler run-sender build-img-api build-img-scheduler build-img-sender build-img run-img up down compose-up compose-down compose-logs integration-tests version test lint run-postgres run-rabbit migrate migrate-down migrate-status generate install-generate-deps

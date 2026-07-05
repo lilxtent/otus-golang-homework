@@ -1,0 +1,24 @@
+services:
+  calendar_scheduler:
+    environment:
+      CONFIG_FILE: /etc/calendar/docker_scheduler_integration_config.yaml
+
+  integration-tests:
+    image: golang:1.26-alpine
+    working_dir: /app
+    volumes:
+      - ..:/app
+    environment:
+      CALENDAR_API_URL: http://calendar:8080
+      RABBITMQ_URL: amqp://rabbit:password@rabbitmq:5672/
+    command:
+      - sh
+      - -c
+      - go test -tags=integration ./tests/integration -count=1 -v
+    depends_on:
+      calendar:
+        condition: service_started
+      calendar_scheduler:
+        condition: service_started
+      calendar_sender:
+        condition: service_started

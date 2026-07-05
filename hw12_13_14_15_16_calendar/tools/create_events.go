@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	apiURL := flag.String("api", "http://localhost:8080", "Calendar HTTP API base URL")
+	apiURL := flag.String("api", "http://localhost:8888", "Calendar HTTP API base URL")
 	flag.Parse()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)

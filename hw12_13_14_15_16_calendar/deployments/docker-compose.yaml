@@ -55,7 +55,7 @@ services:
     environment:
       CONFIG_FILE: /etc/calendar/docker_calendar_config.yaml
     ports:
-      - "8080:8080"
+      - "8888:8080"
       - "50051:50051"
     depends_on:
       postgres:
