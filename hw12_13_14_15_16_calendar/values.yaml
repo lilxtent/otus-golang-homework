@@ -1,22 +1,98 @@
-replicaCount: 1
-
 image:
-  repository: my-calendar-app
+  repository: calendar-api
   tag: "latest"
   pullPolicy: IfNotPresent
 
-service:
-  type: ClusterIP
-  port: 80
+nameOverride: ""
+fullnameOverride: ""
+
+commonLabels: {}
+
+storage:
+  type: SQL
+  dsn: postgres://postgres:password@postgres:5432/backend?sslmode=disable
+
+queue:
+  url: amqp://rabbit:password@rabbitmq:5672/
+  exchange: calendar
+  notificationsQueue: calendar.notifications
+  notificationsRoutingKey: calendar.notification
+  statusesQueue: calendar.notification_statuses
+  statusesRoutingKey: calendar.notification.status
+
+components:
+  api:
+    enabled: true
+    replicaCount: 1
+    image:
+      repository: calendar-api
+      tag: develop
+    serviceName: calendar
+    configFile: /etc/calendar/calendar.yaml
+    logger:
+      level: INFO
+    http:
+      host: 0.0.0.0
+      port: 8080
+    grpc:
+      host: 0.0.0.0
+      port: 50051
+    service:
+      type: ClusterIP
+      httpPort: 80
+      grpcPort: 50051
+    resources: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+  scheduler:
+    enabled: true
+    replicaCount: 1
+    image:
+      repository: calendar-scheduler
+      tag: develop
+    serviceName: calendar_scheduler
+    configFile: /etc/calendar/scheduler.yaml
+    logger:
+      level: INFO
+    scheduler:
+      scanInterval: 1m
+      cleanupInterval: 1h
+    service:
+      type: ClusterIP
+      port: 80
+      targetPort: 8080
+    resources: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+  sender:
+    enabled: true
+    replicaCount: 1
+    image:
+      repository: calendar-sender
+      tag: develop
+    serviceName: calendar_sender
+    configFile: /etc/calendar/sender.yaml
+    logger:
+      level: INFO
+    service:
+      type: ClusterIP
+      port: 80
+      targetPort: 8080
+    resources: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
 
 ingress:
   enabled: false
-  annotations: {}
+  className: ""
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: HTTP
   hosts:
-    - host: chart-example.local
-      paths: []
+    - host: calendar.local
+      paths:
+        - path: /
+          pathType: Prefix
   tls: []
-
-resources: {}
-nodeSelector: {}
-affinity: {}

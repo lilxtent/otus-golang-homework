@@ -1,0 +1,70 @@
+{{- if .Values.components.api.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "calendar.componentName" (dict "root" . "component" "api") }}
+  labels:
+    {{- include "calendar.componentLabels" (dict "root" . "component" "api") | nindent 4 }}
+data:
+  calendar.yaml: |
+    logger:
+      level: {{ .Values.components.api.logger.level }}
+    http:
+      host: {{ .Values.components.api.http.host }}
+      port: {{ .Values.components.api.http.port }}
+    grpc:
+      host: {{ .Values.components.api.grpc.host }}
+      port: {{ .Values.components.api.grpc.port }}
+    storage:
+      type: {{ .Values.storage.type }}
+      dsn: {{ .Values.storage.dsn }}
+{{- end }}
+{{- if .Values.components.scheduler.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "calendar.componentName" (dict "root" . "component" "scheduler") }}
+  labels:
+    {{- include "calendar.componentLabels" (dict "root" . "component" "scheduler") | nindent 4 }}
+data:
+  scheduler.yaml: |
+    logger:
+      level: {{ .Values.components.scheduler.logger.level }}
+    storage:
+      type: {{ .Values.storage.type }}
+      dsn: {{ .Values.storage.dsn }}
+    queue:
+      url: {{ .Values.queue.url }}
+      exchange: {{ .Values.queue.exchange }}
+      queue: {{ .Values.queue.notificationsQueue }}
+      routing_key: {{ .Values.queue.notificationsRoutingKey }}
+      consumer_tag: calendar-scheduler
+    scheduler:
+      scan_interval: {{ .Values.components.scheduler.scheduler.scanInterval }}
+      cleanup_interval: {{ .Values.components.scheduler.scheduler.cleanupInterval }}
+{{- end }}
+{{- if .Values.components.sender.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "calendar.componentName" (dict "root" . "component" "sender") }}
+  labels:
+    {{- include "calendar.componentLabels" (dict "root" . "component" "sender") | nindent 4 }}
+data:
+  sender.yaml: |
+    logger:
+      level: {{ .Values.components.sender.logger.level }}
+    queue:
+      url: {{ .Values.queue.url }}
+      exchange: {{ .Values.queue.exchange }}
+      queue: {{ .Values.queue.notificationsQueue }}
+      routing_key: {{ .Values.queue.notificationsRoutingKey }}
+      consumer_tag: calendar-sender
+    status_queue:
+      url: {{ .Values.queue.url }}
+      exchange: {{ .Values.queue.exchange }}
+      queue: {{ .Values.queue.statusesQueue }}
+      routing_key: {{ .Values.queue.statusesRoutingKey }}
+{{- end }}
