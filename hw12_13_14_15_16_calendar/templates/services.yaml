@@ -1,0 +1,31 @@
+{{- range $component, $config := .Values.components }}
+{{- if $config.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "calendar.componentName" (dict "root" $ "component" $component) }}
+  labels:
+    {{- include "calendar.componentLabels" (dict "root" $ "component" $component) | nindent 4 }}
+spec:
+  type: {{ $config.service.type }}
+  ports:
+    {{- if eq $component "api" }}
+    - name: http
+      port: {{ $config.service.httpPort }}
+      targetPort: http
+      protocol: TCP
+    - name: grpc
+      port: {{ $config.service.grpcPort }}
+      targetPort: grpc
+      protocol: TCP
+    {{- else }}
+    - name: http
+      port: {{ $config.service.port }}
+      targetPort: {{ $config.service.targetPort }}
+      protocol: TCP
+    {{- end }}
+  selector:
+    {{- include "calendar.componentSelectorLabels" (dict "root" $ "component" $component) | nindent 4 }}
+{{- end }}
+{{- end }}
